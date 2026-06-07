@@ -275,7 +275,7 @@ function OrdemDetailPage() {
   }
 
   const publicUrl = os?.link_publico_token
-    ? `${window.location.origin}/os/${os.link_publico_token}`
+    ? `${window.location.origin}/os/${os.link_publico_token}?v=2`
     : null;
 
   const clienteNomeMsg = clientes.find((c) => c.id === os?.cliente_id)?.nome ?? "";
