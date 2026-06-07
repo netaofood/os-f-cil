@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { ItemOSForm } from "@/components/item-os-form";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -189,6 +189,7 @@ function OrdemDetailPage() {
       </AppShell>
     );
   }
+
   if (!os) {
     return (
       <AppShell title="OS">
@@ -199,7 +200,8 @@ function OrdemDetailPage() {
 
   return (
     <AppShell title={`OS #${os.numero}`}>
-      <div className="mb-4">
+      {/* Cabeçalho */}
+      <div className="mb-4 flex items-center gap-3">
         <Button asChild variant="ghost" size="sm">
           <Link to="/ordens">
             <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
@@ -210,35 +212,42 @@ function OrdemDetailPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-4">
 
-          {/* Card Dados Gerais */}
+          {/* ── Card Dados Gerais ── */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
-              <CardTitle className="text-base">Dados gerais</CardTitle>
-              {!editing ? (
-                <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-                  <Pencil className="h-3.5 w-3.5 mr-1" />
-                  Editar
-                </Button>
-              ) : (
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={handleCancelEdit} disabled={saving}>
-                    <X className="h-3.5 w-3.5 mr-1" />
-                    Cancelar
+            <CardContent className="pt-6">
+              {/* Header do card com botão editar */}
+              <div className="flex items-center justify-between mb-4">
+                <p className="font-semibold text-base">Dados gerais</p>
+                {!editing ? (
+                  <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" />
+                    Editar
                   </Button>
-                  <Button size="sm" onClick={handleSave} disabled={saving}>
-                    {saving ? (
-                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                    ) : (
-                      <Save className="h-3.5 w-3.5 mr-1" />
-                    )}
-                    Salvar
-                  </Button>
-                </div>
-              )}
-            </CardHeader>
-            <CardContent>
-              {!editing ? (
-                /* Modo visualização */
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancelEdit}
+                      disabled={saving}
+                    >
+                      <X className="h-3.5 w-3.5 mr-1" />
+                      Cancelar
+                    </Button>
+                    <Button size="sm" onClick={handleSave} disabled={saving}>
+                      {saving ? (
+                        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                      ) : (
+                        <Save className="h-3.5 w-3.5 mr-1" />
+                      )}
+                      Salvar
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Visualização */}
+              {!editing && (
                 <div className="space-y-3 text-sm">
                   <div className="grid sm:grid-cols-2 gap-3">
                     <div>
@@ -275,12 +284,14 @@ function OrdemDetailPage() {
                   )}
                   {!os.diagnostico && !os.observacoes && !os.forma_pagamento && !os.cliente_id && (
                     <p className="text-muted-foreground text-xs italic">
-                      Nenhum dado preenchido ainda. Clique em Editar para preencher.
+                      Nenhum dado preenchido. Clique em "Editar" para preencher.
                     </p>
                   )}
                 </div>
-              ) : (
-                /* Modo edição */
+              )}
+
+              {/* Formulário de edição */}
+              {editing && (
                 <div className="space-y-3">
                   <div className="grid sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
@@ -378,25 +389,23 @@ function OrdemDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Card Itens */}
+          {/* ── Card Itens ── */}
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center justify-between">
-                <span>Itens</span>
-                <span className="text-sm font-normal text-muted-foreground">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <p className="font-semibold text-base">Itens</p>
+                <span className="text-sm text-muted-foreground">
                   Total:{" "}
                   <strong className="text-foreground">{brl(Number(os.total))}</strong>
                 </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {/* Lista de itens já adicionados */}
+              </div>
+
               {itens.length === 0 ? (
-                <div className="text-sm text-muted-foreground text-center py-4">
+                <p className="text-sm text-muted-foreground text-center py-4">
                   Nenhum item adicionado ainda.
-                </div>
+                </p>
               ) : (
-                <div className="space-y-0.5">
+                <div className="space-y-0.5 mb-2">
                   {itens.map((it) => (
                     <div
                       key={it.id}
@@ -424,25 +433,22 @@ function OrdemDetailPage() {
                 </div>
               )}
 
-              {/* Formulário de adição com autocomplete */}
               <ItemOSForm osId={os.id} />
             </CardContent>
           </Card>
         </div>
 
-        {/* Histórico */}
-        <Card className="h-fit">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
+        {/* ── Histórico ── */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-4">
               <History className="h-4 w-4" />
-              Histórico
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+              <p className="font-semibold text-base">Histórico</p>
+            </div>
             {logs.length === 0 ? (
-              <div className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Nenhuma alteração registrada ainda.
-              </div>
+              </p>
             ) : (
               <ul className="space-y-3 text-xs">
                 {logs.map((l) => (
