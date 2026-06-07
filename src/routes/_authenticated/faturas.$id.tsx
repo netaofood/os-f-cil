@@ -100,7 +100,7 @@ function FaturaDetailPage() {
   }
 
   const itens = (data.itens as unknown as ItemJson[]) ?? [];
-  const publicUrl = `${window.location.origin}/fatura/${data.link_publico_token}`;
+  const publicUrl = `${window.location.origin}/fatura/${data.link_publico_token}?v=2`;
 
   async function downloadPdf() {
     if (!data) return;
