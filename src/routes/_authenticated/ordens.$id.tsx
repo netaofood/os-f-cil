@@ -3,7 +3,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
-  Plus,
   Trash2,
   Loader2,
   Save,
@@ -15,7 +14,6 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -26,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ItemOSForm } from "@/components/item-os-form";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/ordens/$id")({
@@ -42,7 +41,6 @@ function OrdemDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
 
-  // Modo edição dos dados gerais
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -66,6 +64,7 @@ function OrdemDetailPage() {
       return data ?? [];
     },
   });
+
   const { data: statuses = [] } = useQuery({
     queryKey: ["status_os"],
     queryFn: async () => {
@@ -73,23 +72,13 @@ function OrdemDetailPage() {
       return data ?? [];
     },
   });
+
   const { data: formas = [] } = useQuery({
     queryKey: ["formas_pagamento"],
     queryFn: async () => {
       const { data } = await supabase
         .from("formas_pagamento")
         .select("*")
-        .eq("ativo", true)
-        .order("nome");
-      return data ?? [];
-    },
-  });
-  const { data: produtos = [] } = useQuery({
-    queryKey: ["produtos-min"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("produtos")
-        .select("id,nome,preco,unidade")
         .eq("ativo", true)
         .order("nome");
       return data ?? [];
@@ -129,7 +118,6 @@ function OrdemDetailPage() {
     observacoes: "",
   });
 
-  // Sincroniza form quando OS carrega
   useEffect(() => {
     if (os) {
       setForm({
@@ -179,37 +167,6 @@ function OrdemDetailPage() {
     }
   }
 
-  // Item form
-  const [novoItem, setNovoItem] = useState({
-    descricao: "",
-    quantidade: "1",
-    preco_unitario: "0",
-  });
-  const [addingItem, setAddingItem] = useState(false);
-
-  async function addItem() {
-    if (!os) return;
-    if (!novoItem.descricao.trim()) {
-      toast.error("Descrição é obrigatória");
-      return;
-    }
-    setAddingItem(true);
-    const { error } = await supabase.from("itens_os").insert({
-      os_id: os.id,
-      descricao: novoItem.descricao.trim(),
-      quantidade: Number(novoItem.quantidade) || 1,
-      preco_unitario: Number(novoItem.preco_unitario) || 0,
-    });
-    setAddingItem(false);
-    if (error) toast.error(error.message);
-    else {
-      setNovoItem({ descricao: "", quantidade: "1", preco_unitario: "0" });
-      qc.invalidateQueries({ queryKey: ["itens_os", id] });
-      qc.invalidateQueries({ queryKey: ["os", id] });
-      qc.invalidateQueries({ queryKey: ["log_os", id] });
-    }
-  }
-
   async function removeItem(itemId: string) {
     const { error } = await supabase.from("itens_os").delete().eq("id", itemId);
     if (error) toast.error(error.message);
@@ -220,20 +177,8 @@ function OrdemDetailPage() {
     }
   }
 
-  function pickProduto(produtoId: string) {
-    const p = produtos.find((x) => x.id === produtoId);
-    if (!p) return;
-    setNovoItem({
-      descricao: p.nome,
-      quantidade: "1",
-      preco_unitario: String(p.preco),
-    });
-  }
-
-  const clienteNome =
-    clientes.find((c) => c.id === os?.cliente_id)?.nome ?? "Sem cliente";
-  const statusCor =
-    statuses.find((s) => s.nome === os?.status)?.cor ?? "#6b7280";
+  const clienteNome = clientes.find((c) => c.id === os?.cliente_id)?.nome ?? "Sem cliente";
+  const statusCor = statuses.find((s) => s.nome === os?.status)?.cor ?? "#6b7280";
 
   if (isLoading) {
     return (
@@ -254,7 +199,7 @@ function OrdemDetailPage() {
 
   return (
     <AppShell title={`OS #${os.numero}`}>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4">
         <Button asChild variant="ghost" size="sm">
           <Link to="/ordens">
             <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
@@ -270,22 +215,13 @@ function OrdemDetailPage() {
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Dados gerais</CardTitle>
               {!editing ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setEditing(true)}
-                >
+                <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
                   <Pencil className="h-3.5 w-3.5 mr-1" />
                   Editar
                 </Button>
               ) : (
                 <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleCancelEdit}
-                    disabled={saving}
-                  >
+                  <Button size="sm" variant="outline" onClick={handleCancelEdit} disabled={saving}>
                     <X className="h-3.5 w-3.5 mr-1" />
                     Cancelar
                   </Button>
@@ -301,8 +237,8 @@ function OrdemDetailPage() {
               )}
             </CardHeader>
             <CardContent>
-              {/* Modo visualização */}
               {!editing ? (
+                /* Modo visualização */
                 <div className="space-y-3 text-sm">
                   <div className="grid sm:grid-cols-2 gap-3">
                     <div>
@@ -389,21 +325,30 @@ function OrdemDetailPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label>Diagnóstico</Label>
+                    <Label>
+                      Diagnóstico{" "}
+                      <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+                    </Label>
                     <Textarea
                       value={form.diagnostico}
                       onChange={(e) => setForm({ ...form, diagnostico: e.target.value })}
                       rows={3}
                       maxLength={2000}
+                      placeholder="Descreva o problema ou serviço solicitado…"
                     />
                   </div>
+
                   <div className="space-y-1.5">
-                    <Label>Observações</Label>
+                    <Label>
+                      Observações{" "}
+                      <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+                    </Label>
                     <Textarea
                       value={form.observacoes}
                       onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
                       rows={2}
                       maxLength={2000}
+                      placeholder="Informações adicionais…"
                     />
                   </div>
 
@@ -439,36 +384,38 @@ function OrdemDetailPage() {
               <CardTitle className="text-base flex items-center justify-between">
                 <span>Itens</span>
                 <span className="text-sm font-normal text-muted-foreground">
-                  Total: <strong className="text-foreground">{brl(Number(os.total))}</strong>
+                  Total:{" "}
+                  <strong className="text-foreground">{brl(Number(os.total))}</strong>
                 </span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2">
+              {/* Lista de itens já adicionados */}
               {itens.length === 0 ? (
                 <div className="text-sm text-muted-foreground text-center py-4">
-                  Nenhum item adicionado.
+                  Nenhum item adicionado ainda.
                 </div>
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {itens.map((it) => (
                     <div
                       key={it.id}
                       className="flex items-center gap-2 text-sm border-b border-border/50 py-2"
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="truncate">{it.descricao}</div>
+                        <div className="truncate font-medium">{it.descricao}</div>
                         <div className="text-xs text-muted-foreground">
                           {Number(it.quantidade)} × {brl(Number(it.preco_unitario))}
                         </div>
                       </div>
-                      <div className="font-medium tabular-nums">
+                      <div className="font-medium tabular-nums shrink-0">
                         {brl(Number(it.total))}
                       </div>
                       <Button
                         size="icon"
                         variant="ghost"
                         onClick={() => removeItem(it.id)}
-                        className="text-destructive hover:text-destructive h-8 w-8"
+                        className="text-destructive hover:text-destructive h-8 w-8 shrink-0"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -477,64 +424,8 @@ function OrdemDetailPage() {
                 </div>
               )}
 
-              <div className="pt-3 border-t border-border space-y-2">
-                {produtos.length > 0 && (
-                  <Select onValueChange={pickProduto}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Adicionar do catálogo…" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {produtos.map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.nome} — {brl(Number(p.preco))}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-                <div className="grid grid-cols-12 gap-2">
-                  <Input
-                    className="col-span-6"
-                    placeholder="Descrição"
-                    value={novoItem.descricao}
-                    onChange={(e) =>
-                      setNovoItem({ ...novoItem, descricao: e.target.value })
-                    }
-                  />
-                  <Input
-                    className="col-span-2"
-                    type="number"
-                    step="0.01"
-                    placeholder="Qtd"
-                    value={novoItem.quantidade}
-                    onChange={(e) =>
-                      setNovoItem({ ...novoItem, quantidade: e.target.value })
-                    }
-                  />
-                  <Input
-                    className="col-span-3"
-                    type="number"
-                    step="0.01"
-                    placeholder="Preço unit."
-                    value={novoItem.preco_unitario}
-                    onChange={(e) =>
-                      setNovoItem({ ...novoItem, preco_unitario: e.target.value })
-                    }
-                  />
-                  <Button
-                    className="col-span-1"
-                    size="icon"
-                    onClick={addItem}
-                    disabled={addingItem}
-                  >
-                    {addingItem ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Plus className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
+              {/* Formulário de adição com autocomplete */}
+              <ItemOSForm osId={os.id} />
             </CardContent>
           </Card>
         </div>
@@ -556,11 +447,10 @@ function OrdemDetailPage() {
               <ul className="space-y-3 text-xs">
                 {logs.map((l) => (
                   <li key={l.id} className="border-l-2 border-primary/50 pl-3">
-                    <div className="font-medium text-foreground">
-                      {l.campo_alterado}
-                    </div>
+                    <div className="font-medium text-foreground">{l.campo_alterado}</div>
                     <div className="text-muted-foreground">
-                      {l.valor_anterior ?? "—"} → <strong>{l.valor_novo ?? "—"}</strong>
+                      {l.valor_anterior ?? "—"} →{" "}
+                      <strong>{l.valor_novo ?? "—"}</strong>
                     </div>
                     <div className="text-[10px] text-muted-foreground mt-0.5">
                       {l.usuario?.nome ?? "Sistema"} ·{" "}

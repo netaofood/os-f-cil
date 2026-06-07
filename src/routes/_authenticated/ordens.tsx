@@ -1,7 +1,16 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Loader2, FileText, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Loader2,
+  FileText,
+  Trash2,
+  Check,
+  PackagePlus,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
@@ -10,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -42,9 +52,191 @@ export const Route = createFileRoute("/_authenticated/ordens")({
 
 type OS = Tables<"ordens_servico"> & { cliente?: { nome: string } | null };
 
+interface ItemRascunho {
+  id: string; // key local
+  descricao: string;
+  quantidade: number;
+  preco_unitario: number;
+  isNovoProduto: boolean; // será cadastrado no catálogo
+}
+
+interface ProdutoMin {
+  id: string;
+  nome: string;
+  preco: number;
+  unidade: string;
+  tipo: "produto" | "servico";
+}
+
 const brl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
+// ─── Autocomplete de item ────────────────────────────────────────────────────
+interface ItemInputProps {
+  produtos: ProdutoMin[];
+  onAdd: (item: Omit<ItemRascunho, "id">) => void;
+}
+
+function ItemInput({ produtos, onAdd }: ItemInputProps) {
+  const [descricao, setDescricao] = useState("");
+  const [quantidade, setQuantidade] = useState("1");
+  const [preco, setPreco] = useState("");
+  const [produtoSelecionadoId, setProdutoSelecionadoId] = useState<string | null>(null);
+  const [showSugestoes, setShowSugestoes] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const sugestoes = descricao.trim().length === 0
+    ? produtos.slice(0, 8)
+    : produtos.filter((p) => p.nome.toLowerCase().includes(descricao.toLowerCase())).slice(0, 8);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowSugestoes(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  function selecionarProduto(p: ProdutoMin) {
+    setDescricao(p.nome);
+    setPreco(String(p.preco));
+    setProdutoSelecionadoId(p.id);
+    setShowSugestoes(false);
+    setTimeout(() => {
+      const qtdInput = containerRef.current?.querySelector<HTMLInputElement>("[data-qtd]");
+      qtdInput?.focus();
+      qtdInput?.select();
+    }, 50);
+  }
+
+  function handleDescChange(v: string) {
+    setDescricao(v);
+    setProdutoSelecionadoId(null);
+    setShowSugestoes(true);
+  }
+
+  function handleSalvarItem() {
+    const desc = descricao.trim();
+    if (!desc) { inputRef.current?.focus(); return; }
+    const jaExiste = produtoSelecionadoId !== null ||
+      produtos.some((p) => p.nome.toLowerCase() === desc.toLowerCase());
+    onAdd({
+      descricao: desc,
+      quantidade: Number(quantidade) || 1,
+      preco_unitario: Number(preco) || 0,
+      isNovoProduto: !jaExiste,
+    });
+    setDescricao("");
+    setQuantidade("1");
+    setPreco("");
+    setProdutoSelecionadoId(null);
+    setTimeout(() => inputRef.current?.focus(), 50);
+  }
+
+  const produtoNaoEncontrado =
+    descricao.trim().length > 0 &&
+    !produtoSelecionadoId &&
+    !produtos.some((p) => p.nome.toLowerCase() === descricao.trim().toLowerCase());
+
+  return (
+    <div className="space-y-2">
+      <div ref={containerRef} className="relative">
+        <Input
+          ref={inputRef}
+          value={descricao}
+          onChange={(e) => handleDescChange(e.target.value)}
+          onFocus={() => setShowSugestoes(true)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSalvarItem(); } }}
+          placeholder="Produto, serviço ou descrição livre…"
+          autoComplete="off"
+        />
+        {showSugestoes && (
+          <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+            {sugestoes.length === 0 && descricao.trim().length > 0 ? (
+              <div className="px-3 py-2 text-xs text-muted-foreground flex items-center gap-2">
+                <PackagePlus className="h-3.5 w-3.5 shrink-0" />
+                Será cadastrado no catálogo ao criar a OS
+              </div>
+            ) : (
+              sugestoes.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); selecionarProduto(p); }}
+                  className={cn(
+                    "w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between gap-2",
+                    produtoSelecionadoId === p.id && "bg-accent"
+                  )}
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    {produtoSelecionadoId === p.id && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                    <span className="truncate">{p.nome}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {p.tipo === "servico" ? "serviço" : "produto"}
+                    </span>
+                  </span>
+                  <span className="text-xs font-medium tabular-nums shrink-0">{brl(p.preco)}</span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-12 gap-2 items-end">
+        <div className="col-span-3">
+          <Label className="text-xs mb-1 block">Qtd</Label>
+          <Input
+            data-qtd
+            type="number"
+            min="0.001"
+            step="0.01"
+            value={quantidade}
+            onChange={(e) => setQuantidade(e.target.value)}
+            onFocus={(e) => e.target.select()}
+          />
+        </div>
+        <div className="col-span-5">
+          <Label className="text-xs mb-1 block">Preço unitário</Label>
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            value={preco}
+            onChange={(e) => setPreco(e.target.value)}
+            onFocus={(e) => e.target.select()}
+            placeholder="0,00"
+          />
+        </div>
+        <div className="col-span-4">
+          <Label className="text-xs mb-1 block text-transparent select-none">add</Label>
+          <Button
+            type="button"
+            className="w-full"
+            variant="secondary"
+            onClick={handleSalvarItem}
+            disabled={!descricao.trim()}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Salvar item
+          </Button>
+        </div>
+      </div>
+
+      {produtoNaoEncontrado && (
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <PackagePlus className="h-3 w-3 shrink-0" />
+          Novo item — será cadastrado no catálogo ao criar a OS.
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─── Página principal ────────────────────────────────────────────────────────
 function OrdensPage() {
   const { data: usuario } = useCurrentUsuario();
   const qc = useQueryClient();
@@ -62,14 +254,12 @@ function OrdensPage() {
     forma_pagamento: "",
     status: "",
   });
+  const [itensRascunho, setItensRascunho] = useState<ItemRascunho[]>([]);
 
   const { data: statuses = [] } = useQuery({
     queryKey: ["status_os"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("status_os")
-        .select("*")
-        .order("ordem");
+      const { data, error } = await supabase.from("status_os").select("*").order("ordem");
       if (error) throw error;
       return data;
     },
@@ -92,6 +282,18 @@ function OrdensPage() {
         .eq("ativo", true)
         .order("nome");
       return data ?? [];
+    },
+  });
+
+  const { data: produtos = [] } = useQuery({
+    queryKey: ["produtos-min"],
+    queryFn: async (): Promise<ProdutoMin[]> => {
+      const { data } = await supabase
+        .from("produtos")
+        .select("id,nome,preco,unidade,tipo")
+        .eq("ativo", true)
+        .order("nome");
+      return (data ?? []) as ProdutoMin[];
     },
   });
 
@@ -129,47 +331,91 @@ function OrdensPage() {
       forma_pagamento: "",
       status: statuses[0]?.nome ?? "",
     });
+    setItensRascunho([]);
     setModalOpen(true);
+  }
+
+  function adicionarItemRascunho(item: Omit<ItemRascunho, "id">) {
+    setItensRascunho((prev) => [...prev, { ...item, id: crypto.randomUUID() }]);
+  }
+
+  function removerItemRascunho(id: string) {
+    setItensRascunho((prev) => prev.filter((i) => i.id !== id));
   }
 
   async function handleCreate() {
     if (!usuario?.empresa_id) return;
     setCreating(true);
 
-    const { data: numero, error: errNum } = await supabase.rpc("next_os_numero", {
-      _empresa_id: usuario.empresa_id,
-    });
-    if (errNum || !numero) {
+    try {
+      // 1. Gera número da OS
+      const { data: numero, error: errNum } = await supabase.rpc("next_os_numero", {
+        _empresa_id: usuario.empresa_id,
+      });
+      if (errNum || !numero) throw new Error(errNum?.message ?? "Falha ao gerar número");
+
+      // 2. Cria a OS
+      const { data: osData, error: osErr } = await supabase
+        .from("ordens_servico")
+        .insert({
+          empresa_id: usuario.empresa_id,
+          numero,
+          status: novaOS.status || statuses[0]?.nome || "aberta",
+          criado_por: usuario.id,
+          cliente_id: novaOS.cliente_id || null,
+          diagnostico: novaOS.diagnostico || null,
+          observacoes: novaOS.observacoes || null,
+          forma_pagamento: novaOS.forma_pagamento || null,
+        })
+        .select("id")
+        .single();
+      if (osErr || !osData) throw new Error(osErr?.message ?? "Erro ao criar OS");
+
+      // 3. Cadastra novos produtos no catálogo
+      const novosNomes = itensRascunho
+        .filter((i) => i.isNovoProduto)
+        .map((i) => i.descricao.toLowerCase());
+
+      for (const item of itensRascunho) {
+        if (item.isNovoProduto && novosNomes.includes(item.descricao.toLowerCase())) {
+          const { error: pErr } = await supabase.from("produtos").insert({
+            empresa_id: usuario.empresa_id,
+            nome: item.descricao,
+            preco: item.preco_unitario,
+            unidade: "un",
+            tipo: "servico",
+            ativo: true,
+          });
+          if (!pErr) {
+            // remove do set para não duplicar se mesmo nome aparecer duas vezes
+            novosNomes.splice(novosNomes.indexOf(item.descricao.toLowerCase()), 1);
+          }
+        }
+      }
+
+      // 4. Insere os itens na OS
+      if (itensRascunho.length > 0) {
+        const { error: itErr } = await supabase.from("itens_os").insert(
+          itensRascunho.map((i) => ({
+            os_id: osData.id,
+            descricao: i.descricao,
+            quantidade: i.quantidade,
+            preco_unitario: i.preco_unitario,
+          }))
+        );
+        if (itErr) console.warn("Aviso ao inserir itens:", itErr.message);
+      }
+
+      qc.invalidateQueries({ queryKey: ["ordens"] });
+      qc.invalidateQueries({ queryKey: ["produtos-min"] });
+      qc.invalidateQueries({ queryKey: ["produtos"] });
+      setModalOpen(false);
+      window.location.href = `/ordens/${osData.id}`;
+    } catch (err: any) {
+      toast.error(err.message ?? "Erro ao criar OS");
+    } finally {
       setCreating(false);
-      toast.error(errNum?.message ?? "Falha ao gerar número");
-      return;
     }
-
-    const defaultStatus = novaOS.status || statuses[0]?.nome || "aberta";
-    const { data, error } = await supabase
-      .from("ordens_servico")
-      .insert({
-        empresa_id: usuario.empresa_id,
-        numero,
-        status: defaultStatus,
-        criado_por: usuario.id,
-        cliente_id: novaOS.cliente_id || null,
-        diagnostico: novaOS.diagnostico || null,
-        observacoes: novaOS.observacoes || null,
-        forma_pagamento: novaOS.forma_pagamento || null,
-      })
-      .select("id")
-      .single();
-
-    setCreating(false);
-    if (error || !data) {
-      toast.error(error?.message ?? "Erro ao criar OS");
-      return;
-    }
-
-    setModalOpen(false);
-    qc.invalidateQueries({ queryKey: ["ordens"] });
-    window.location.href = `/ordens/${data.id}`;
   }
 
   async function handleDelete() {
@@ -186,8 +432,14 @@ function OrdensPage() {
     setToDelete(null);
   }
 
+  const totalRascunho = itensRascunho.reduce(
+    (acc, i) => acc + i.quantidade * i.preco_unitario,
+    0
+  );
+
   return (
     <AppShell title="Ordens de Serviço">
+      {/* Barra de busca e filtros */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -217,6 +469,7 @@ function OrdensPage() {
         </Button>
       </div>
 
+      {/* Lista de OSs */}
       {isLoading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -274,12 +527,13 @@ function OrdensPage() {
 
       {/* Modal Nova OS */}
       <Dialog open={modalOpen} onOpenChange={(o) => !creating && setModalOpen(o)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nova Ordem de Serviço</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="space-y-5 py-1">
+            {/* Dados gerais */}
             <div className="grid sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Cliente</Label>
@@ -324,24 +578,30 @@ function OrdensPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Diagnóstico / Descrição do problema</Label>
+              <Label>
+                Diagnóstico{" "}
+                <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+              </Label>
               <Textarea
                 value={novaOS.diagnostico}
                 onChange={(e) => setNovaOS({ ...novaOS, diagnostico: e.target.value })}
-                rows={3}
+                rows={2}
                 maxLength={2000}
                 placeholder="Descreva o problema ou serviço solicitado…"
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label>Observações</Label>
+              <Label>
+                Observações{" "}
+                <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+              </Label>
               <Textarea
                 value={novaOS.observacoes}
                 onChange={(e) => setNovaOS({ ...novaOS, observacoes: e.target.value })}
                 rows={2}
                 maxLength={2000}
-                placeholder="Observações adicionais (opcional)…"
+                placeholder="Informações adicionais…"
               />
             </div>
 
@@ -368,9 +628,58 @@ function OrdensPage() {
                 </Select>
               </div>
             )}
+
+            {/* Itens */}
+            <div className="space-y-3 border-t border-border pt-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">Itens</p>
+                {itensRascunho.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    Total: <strong className="text-foreground">{brl(totalRascunho)}</strong>
+                  </span>
+                )}
+              </div>
+
+              {/* Lista de itens adicionados */}
+              {itensRascunho.length > 0 && (
+                <div className="space-y-1 mb-1">
+                  {itensRascunho.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center gap-2 text-sm border-b border-border/50 py-1.5"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="truncate font-medium">{item.descricao}</div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          {item.quantidade} × {brl(item.preco_unitario)}
+                          {item.isNovoProduto && (
+                            <span className="text-primary flex items-center gap-0.5">
+                              <PackagePlus className="h-3 w-3" /> novo
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="font-medium tabular-nums shrink-0">
+                        {brl(item.quantidade * item.preco_unitario)}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removerItemRascunho(item.id)}
+                        className="text-muted-foreground hover:text-destructive transition p-1"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Formulário de item inline */}
+              <ItemInput produtos={produtos} onAdd={adicionarItemRascunho} />
+            </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="pt-2">
             <Button variant="outline" onClick={() => setModalOpen(false)} disabled={creating}>
               Cancelar
             </Button>
@@ -392,8 +701,7 @@ function OrdensPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remover OS #{toDelete?.numero}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. Os itens e o histórico também serão
-              removidos.
+              Esta ação não pode ser desfeita. Os itens e o histórico também serão removidos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
