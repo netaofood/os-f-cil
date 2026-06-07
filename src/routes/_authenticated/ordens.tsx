@@ -8,6 +8,8 @@ import { AppShell } from "@/components/app-shell";
 import { useCurrentUsuario } from "@/hooks/use-current-user";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -15,6 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,8 +50,18 @@ function OrdensPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
-  const [creating, setCreating] = useState(false);
   const [toDelete, setToDelete] = useState<OS | null>(null);
+
+  // Modal Nova OS
+  const [modalOpen, setModalOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [novaOS, setNovaOS] = useState({
+    cliente_id: "",
+    diagnostico: "",
+    observacoes: "",
+    forma_pagamento: "",
+    status: "",
+  });
 
   const { data: statuses = [] } = useQuery({
     queryKey: ["status_os"],
@@ -53,6 +72,26 @@ function OrdensPage() {
         .order("ordem");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: clientes = [] } = useQuery({
+    queryKey: ["clientes-min"],
+    queryFn: async () => {
+      const { data } = await supabase.from("clientes").select("id,nome").order("nome");
+      return data ?? [];
+    },
+  });
+
+  const { data: formas = [] } = useQuery({
+    queryKey: ["formas_pagamento"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("formas_pagamento")
+        .select("*")
+        .eq("ativo", true)
+        .order("nome");
+      return data ?? [];
     },
   });
 
@@ -82,9 +121,21 @@ function OrdensPage() {
   const statusColor = (nome: string) =>
     statuses.find((s) => s.nome === nome)?.cor ?? "#6b7280";
 
+  function openModal() {
+    setNovaOS({
+      cliente_id: "",
+      diagnostico: "",
+      observacoes: "",
+      forma_pagamento: "",
+      status: statuses[0]?.nome ?? "",
+    });
+    setModalOpen(true);
+  }
+
   async function handleCreate() {
     if (!usuario?.empresa_id) return;
     setCreating(true);
+
     const { data: numero, error: errNum } = await supabase.rpc("next_os_numero", {
       _empresa_id: usuario.empresa_id,
     });
@@ -93,7 +144,8 @@ function OrdensPage() {
       toast.error(errNum?.message ?? "Falha ao gerar número");
       return;
     }
-    const defaultStatus = statuses[0]?.nome ?? "aberta";
+
+    const defaultStatus = novaOS.status || statuses[0]?.nome || "aberta";
     const { data, error } = await supabase
       .from("ordens_servico")
       .insert({
@@ -101,14 +153,21 @@ function OrdensPage() {
         numero,
         status: defaultStatus,
         criado_por: usuario.id,
+        cliente_id: novaOS.cliente_id || null,
+        diagnostico: novaOS.diagnostico || null,
+        observacoes: novaOS.observacoes || null,
+        forma_pagamento: novaOS.forma_pagamento || null,
       })
       .select("id")
       .single();
+
     setCreating(false);
     if (error || !data) {
-      toast.error(error?.message ?? "Erro");
+      toast.error(error?.message ?? "Erro ao criar OS");
       return;
     }
+
+    setModalOpen(false);
     qc.invalidateQueries({ queryKey: ["ordens"] });
     window.location.href = `/ordens/${data.id}`;
   }
@@ -152,12 +211,8 @@ function OrdensPage() {
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={handleCreate} disabled={creating || !usuario?.empresa_id}>
-          {creating ? (
-            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4 mr-1" />
-          )}
+        <Button onClick={openModal} disabled={!usuario?.empresa_id}>
+          <Plus className="h-4 w-4 mr-1" />
           Nova OS
         </Button>
       </div>
@@ -217,6 +272,121 @@ function OrdensPage() {
         </div>
       )}
 
+      {/* Modal Nova OS */}
+      <Dialog open={modalOpen} onOpenChange={(o) => !creating && setModalOpen(o)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Nova Ordem de Serviço</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Cliente</Label>
+                <Select
+                  value={novaOS.cliente_id || "_none"}
+                  onValueChange={(v) =>
+                    setNovaOS({ ...novaOS, cliente_id: v === "_none" ? "" : v })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— Sem cliente —</SelectItem>
+                    {clientes.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Status inicial</Label>
+                <Select
+                  value={novaOS.status || statuses[0]?.nome || ""}
+                  onValueChange={(v) => setNovaOS({ ...novaOS, status: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statuses.map((s) => (
+                      <SelectItem key={s.id} value={s.nome}>
+                        {s.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Diagnóstico / Descrição do problema</Label>
+              <Textarea
+                value={novaOS.diagnostico}
+                onChange={(e) => setNovaOS({ ...novaOS, diagnostico: e.target.value })}
+                rows={3}
+                maxLength={2000}
+                placeholder="Descreva o problema ou serviço solicitado…"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Observações</Label>
+              <Textarea
+                value={novaOS.observacoes}
+                onChange={(e) => setNovaOS({ ...novaOS, observacoes: e.target.value })}
+                rows={2}
+                maxLength={2000}
+                placeholder="Observações adicionais (opcional)…"
+              />
+            </div>
+
+            {formas.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Forma de pagamento</Label>
+                <Select
+                  value={novaOS.forma_pagamento || "_none"}
+                  onValueChange={(v) =>
+                    setNovaOS({ ...novaOS, forma_pagamento: v === "_none" ? "" : v })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— Não definida —</SelectItem>
+                    {formas.map((f) => (
+                      <SelectItem key={f.id} value={f.nome}>
+                        {f.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setModalOpen(false)} disabled={creating}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreate} disabled={creating || !usuario?.empresa_id}>
+              {creating ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-1" />
+              )}
+              Criar OS
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmar exclusão */}
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

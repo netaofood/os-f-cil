@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Plus, Trash2, Loader2, Save, History } from "lucide-react";
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  Loader2,
+  Save,
+  History,
+  Pencil,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
@@ -32,6 +41,10 @@ const brl = (n: number) =>
 function OrdemDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
+
+  // Modo edição dos dados gerais
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const { data: os, isLoading } = useQuery({
     queryKey: ["os", id],
@@ -104,7 +117,7 @@ function OrdemDetailPage() {
         .eq("os_id", id)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data as Array<Tables<"log_os"> & { usuario: { nome: string } | null }>);
+      return data as Array<Tables<"log_os"> & { usuario: { nome: string } | null }>;
     },
   });
 
@@ -115,8 +128,8 @@ function OrdemDetailPage() {
     diagnostico: "",
     observacoes: "",
   });
-  const [saving, setSaving] = useState(false);
 
+  // Sincroniza form quando OS carrega
   useEffect(() => {
     if (os) {
       setForm({
@@ -128,6 +141,18 @@ function OrdemDetailPage() {
       });
     }
   }, [os]);
+
+  function handleCancelEdit() {
+    if (!os) return;
+    setForm({
+      cliente_id: os.cliente_id ?? "",
+      status: os.status,
+      forma_pagamento: os.forma_pagamento ?? "",
+      diagnostico: os.diagnostico ?? "",
+      observacoes: os.observacoes ?? "",
+    });
+    setEditing(false);
+  }
 
   async function handleSave() {
     if (!os) return;
@@ -143,9 +168,11 @@ function OrdemDetailPage() {
       })
       .eq("id", os.id);
     setSaving(false);
-    if (error) toast.error(error.message);
-    else {
+    if (error) {
+      toast.error(error.message);
+    } else {
       toast.success("OS atualizada");
+      setEditing(false);
       qc.invalidateQueries({ queryKey: ["os", id] });
       qc.invalidateQueries({ queryKey: ["log_os", id] });
       qc.invalidateQueries({ queryKey: ["ordens"] });
@@ -203,6 +230,11 @@ function OrdemDetailPage() {
     });
   }
 
+  const clienteNome =
+    clientes.find((c) => c.id === os?.cliente_id)?.nome ?? "Sem cliente";
+  const statusCor =
+    statuses.find((s) => s.nome === os?.status)?.cor ?? "#6b7280";
+
   if (isLoading) {
     return (
       <AppShell title="OS">
@@ -222,7 +254,7 @@ function OrdemDetailPage() {
 
   return (
     <AppShell title={`OS #${os.numero}`}>
-      <div className="mb-4">
+      <div className="mb-4 flex items-center justify-between">
         <Button asChild variant="ghost" size="sm">
           <Link to="/ordens">
             <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
@@ -232,107 +264,176 @@ function OrdemDetailPage() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-4">
+
+          {/* Card Dados Gerais */}
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base">Dados gerais</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Cliente</Label>
-                  <Select
-                    value={form.cliente_id || "_none"}
-                    onValueChange={(v) =>
-                      setForm({ ...form, cliente_id: v === "_none" ? "" : v })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecionar" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="_none">— Sem cliente —</SelectItem>
-                      {clientes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Status</Label>
-                  <Select
-                    value={form.status}
-                    onValueChange={(v) => setForm({ ...form, status: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statuses.map((s) => (
-                        <SelectItem key={s.id} value={s.nome}>
-                          {s.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Diagnóstico</Label>
-                <Textarea
-                  value={form.diagnostico}
-                  onChange={(e) => setForm({ ...form, diagnostico: e.target.value })}
-                  rows={3}
-                  maxLength={2000}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Observações</Label>
-                <Textarea
-                  value={form.observacoes}
-                  onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
-                  rows={2}
-                  maxLength={2000}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Forma de pagamento</Label>
-                <Select
-                  value={form.forma_pagamento || "_none"}
-                  onValueChange={(v) =>
-                    setForm({ ...form, forma_pagamento: v === "_none" ? "" : v })
-                  }
+              {!editing ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setEditing(true)}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_none">— Não definida —</SelectItem>
-                    {formas.map((f) => (
-                      <SelectItem key={f.id} value={f.nome}>
-                        {f.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <Button onClick={handleSave} disabled={saving}>
-                  {saving ? (
-                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  ) : (
-                    <Save className="h-4 w-4 mr-1" />
-                  )}
-                  Salvar alterações
+                  <Pencil className="h-3.5 w-3.5 mr-1" />
+                  Editar
                 </Button>
-              </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    disabled={saving}
+                  >
+                    <X className="h-3.5 w-3.5 mr-1" />
+                    Cancelar
+                  </Button>
+                  <Button size="sm" onClick={handleSave} disabled={saving}>
+                    {saving ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                    ) : (
+                      <Save className="h-3.5 w-3.5 mr-1" />
+                    )}
+                    Salvar
+                  </Button>
+                </div>
+              )}
+            </CardHeader>
+            <CardContent>
+              {/* Modo visualização */}
+              {!editing ? (
+                <div className="space-y-3 text-sm">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Cliente</p>
+                      <p className="font-medium">{clienteNome}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Status</p>
+                      <span
+                        className="inline-block text-xs font-medium px-2 py-1 rounded-full text-white"
+                        style={{ backgroundColor: statusCor }}
+                      >
+                        {os.status}
+                      </span>
+                    </div>
+                  </div>
+                  {os.diagnostico && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Diagnóstico</p>
+                      <p className="whitespace-pre-wrap">{os.diagnostico}</p>
+                    </div>
+                  )}
+                  {os.observacoes && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Observações</p>
+                      <p className="whitespace-pre-wrap">{os.observacoes}</p>
+                    </div>
+                  )}
+                  {os.forma_pagamento && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Forma de pagamento</p>
+                      <p>{os.forma_pagamento}</p>
+                    </div>
+                  )}
+                  {!os.diagnostico && !os.observacoes && !os.forma_pagamento && !os.cliente_id && (
+                    <p className="text-muted-foreground text-xs italic">
+                      Nenhum dado preenchido ainda. Clique em Editar para preencher.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                /* Modo edição */
+                <div className="space-y-3">
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Cliente</Label>
+                      <Select
+                        value={form.cliente_id || "_none"}
+                        onValueChange={(v) =>
+                          setForm({ ...form, cliente_id: v === "_none" ? "" : v })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecionar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="_none">— Sem cliente —</SelectItem>
+                          {clientes.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Status</Label>
+                      <Select
+                        value={form.status}
+                        onValueChange={(v) => setForm({ ...form, status: v })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statuses.map((s) => (
+                            <SelectItem key={s.id} value={s.nome}>
+                              {s.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Diagnóstico</Label>
+                    <Textarea
+                      value={form.diagnostico}
+                      onChange={(e) => setForm({ ...form, diagnostico: e.target.value })}
+                      rows={3}
+                      maxLength={2000}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Observações</Label>
+                    <Textarea
+                      value={form.observacoes}
+                      onChange={(e) => setForm({ ...form, observacoes: e.target.value })}
+                      rows={2}
+                      maxLength={2000}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Forma de pagamento</Label>
+                    <Select
+                      value={form.forma_pagamento || "_none"}
+                      onValueChange={(v) =>
+                        setForm({ ...form, forma_pagamento: v === "_none" ? "" : v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="_none">— Não definida —</SelectItem>
+                        {formas.map((f) => (
+                          <SelectItem key={f.id} value={f.nome}>
+                            {f.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
+          {/* Card Itens */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center justify-between">
@@ -438,6 +539,7 @@ function OrdemDetailPage() {
           </Card>
         </div>
 
+        {/* Histórico */}
         <Card className="h-fit">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
