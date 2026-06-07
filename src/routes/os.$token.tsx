@@ -110,14 +110,24 @@ function PublicOSPage() {
       <div className="max-w-2xl mx-auto space-y-4">
 
         {/* Cabeçalho empresa */}
-        <div className="rounded-lg p-5 text-white shadow" style={{ backgroundColor: cor }}>
-          <div className="text-xs opacity-80">{empresa?.nome}</div>
-          <h1 className="text-xl font-bold mt-0.5">Orçamento #{data.numero}</h1>
-          <div className="text-xs opacity-80 mt-1">
-            {[empresa?.cidade, empresa?.estado].filter(Boolean).join("/")}
-            {empresa?.telefone && ` · ${empresa.telefone}`}
+        <div className="rounded-lg p-5 text-white shadow flex items-center gap-4" style={{ backgroundColor: cor }}>
+          {empresa?.logo_url && (
+            <img
+              src={empresa.logo_url}
+              alt={empresa?.nome ?? "Logo"}
+              className="h-14 w-14 object-contain rounded bg-white/90 p-1 shrink-0"
+            />
+          )}
+          <div className="min-w-0">
+            <div className="text-xs opacity-80 truncate">{empresa?.nome}</div>
+            <h1 className="text-xl font-bold mt-0.5">Orçamento #{data.numero}</h1>
+            <div className="text-xs opacity-80 mt-1">
+              {[empresa?.cidade, empresa?.estado].filter(Boolean).join("/")}
+              {empresa?.telefone && ` · ${empresa.telefone}`}
+            </div>
           </div>
         </div>
+
 
         {/* Dados */}
         <Card>
