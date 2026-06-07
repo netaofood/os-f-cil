@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, Search, Loader2, FileText, Trash2,
   Check, PackagePlus, X, Pencil, Save, ExternalLink,
+  CheckCircle2, XCircle, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
