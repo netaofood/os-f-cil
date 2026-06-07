@@ -13,7 +13,37 @@ import { buildFaturaPdf } from "@/lib/fatura-pdf";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/fatura/$token")({
-  ssr: false,
+  loader: async ({ params }) => {
+    try {
+      return await getFaturaByToken({ data: { token: params.token } });
+    } catch {
+      return null;
+    }
+  },
+  head: ({ loaderData }) => {
+    const fat: any = loaderData;
+    const empresa = fat?.empresa;
+    const nomeEmp = empresa?.nome ?? "OS Fácil";
+    const title = fat ? `Fatura ${fat.numero} — ${nomeEmp}` : "Fatura";
+    const desc = fat
+      ? `Visualize a fatura ${fat.numero} de ${nomeEmp}.`
+      : "Visualização pública de fatura.";
+    const meta: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: desc },
+      { property: "og:title", content: title },
+      { property: "og:description", content: desc },
+      { property: "og:type", content: "website" },
+      { name: "twitter:title", content: title },
+      { name: "twitter:description", content: desc },
+    ];
+    if (empresa?.logo_url) {
+      meta.push({ property: "og:image", content: empresa.logo_url });
+      meta.push({ name: "twitter:image", content: empresa.logo_url });
+      meta.push({ name: "twitter:card", content: "summary_large_image" });
+    }
+    return { meta };
+  },
   component: PublicFaturaPage,
 });
 
@@ -29,12 +59,14 @@ const brl = (n: number) =>
 
 function PublicFaturaPage() {
   const { token } = Route.useParams();
+  const initialData = Route.useLoaderData();
   const fetchFn = useServerFn(getFaturaByToken);
   const signFn = useServerFn(signFaturaByToken);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["public-fatura", token],
     queryFn: () => fetchFn({ data: { token } }),
+    initialData: initialData ?? undefined,
   });
 
   const canvasRef = useRef<HTMLCanvasElement>(null);

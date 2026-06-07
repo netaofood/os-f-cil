@@ -12,7 +12,37 @@ import { getOSByToken, aprovarOSByToken } from "@/lib/os.functions";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/os/$token")({
-  ssr: false,
+  loader: async ({ params }) => {
+    try {
+      return await getOSByToken({ data: { token: params.token } });
+    } catch {
+      return null;
+    }
+  },
+  head: ({ loaderData }) => {
+    const os: any = loaderData;
+    const empresa = os?.empresa;
+    const nomeEmp = empresa?.nome ?? "OS Fácil";
+    const title = os ? `Orçamento #${os.numero} — ${nomeEmp}` : "Orçamento";
+    const desc = os
+      ? `Visualize e aprove o orçamento #${os.numero} de ${nomeEmp}.`
+      : "Visualização pública de orçamento.";
+    const meta: Array<Record<string, string>> = [
+      { title },
+      { name: "description", content: desc },
+      { property: "og:title", content: title },
+      { property: "og:description", content: desc },
+      { property: "og:type", content: "website" },
+      { name: "twitter:title", content: title },
+      { name: "twitter:description", content: desc },
+    ];
+    if (empresa?.logo_url) {
+      meta.push({ property: "og:image", content: empresa.logo_url });
+      meta.push({ name: "twitter:image", content: empresa.logo_url });
+      meta.push({ name: "twitter:card", content: "summary_large_image" });
+    }
+    return { meta };
+  },
   component: PublicOSPage,
 });
 
@@ -21,12 +51,14 @@ const brl = (n: number) =>
 
 function PublicOSPage() {
   const { token } = Route.useParams();
+  const initialData = Route.useLoaderData();
   const fetchOS = useServerFn(getOSByToken);
   const aprovarOS = useServerFn(aprovarOSByToken);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["public-os", token],
     queryFn: () => fetchOS({ data: { token } }),
+    initialData: initialData ?? undefined,
   });
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
