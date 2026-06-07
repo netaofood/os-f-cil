@@ -1,33 +1,30 @@
-## Problema
+## Mudanças
 
-O ícone "Abrir OS" navega para `/ordens/{id}`, a URL muda, mas a tela de detalhe não aparece. Causa: `src/routes/_authenticated/ordens.tsx` é tanto a lista quanto o "pai" da rota `/ordens/$id`, mas não renderiza `<Outlet />`. No TanStack Router, sem `<Outlet />` o filho nunca monta.
+### 1. Mensagem padrão com nome do cliente + link
+**Arquivo:** `src/routes/_authenticated/ordens.$id.tsx`
 
-## Solução
+Criar uma única mensagem reutilizada pelo botão "Copiar" e pelo WhatsApp:
 
-Separar layout, lista e detalhe em três arquivos:
-
-```text
-src/routes/_authenticated/
-  ordens.tsx          -> layout: apenas renderiza <Outlet />
-  ordens.index.tsx    -> lista de OS (conteúdo atual de ordens.tsx)
-  ordens.$id.tsx      -> detalhe da OS (já existe, sem mudanças)
+```
+Olá {nomeDoCliente || ""}, segue seu orçamento {publicUrl}
 ```
 
-## Passos
+- O botão de copiar passa a copiar essa mensagem completa (texto + link), em vez de apenas o link.
+- O WhatsApp continua abrindo com a mesma mensagem.
+- Se a OS não tiver cliente, o nome fica vazio → `Olá , segue seu orçamento …`.
+- O `<Input>` no modal mostra a mensagem completa (readonly) para o usuário ver o que será enviado/copiado.
 
-1. Renomear o atual `src/routes/_authenticated/ordens.tsx` para `src/routes/_authenticated/ordens.index.tsx` e trocar `createFileRoute("/_authenticated/ordens")` por `createFileRoute("/_authenticated/ordens/")`.
-2. Criar novo `src/routes/_authenticated/ordens.tsx` mínimo:
-   ```tsx
-   import { createFileRoute, Outlet } from "@tanstack/react-router";
-   export const Route = createFileRoute("/_authenticated/ordens")({
-     component: () => <Outlet />,
-   });
-   ```
-3. Deixar `ordens.$id.tsx` como está.
-4. O `routeTree.gen.ts` é regenerado automaticamente pelo plugin.
+### 2. Logo da empresa na página pública do orçamento
+**Arquivo:** `src/routes/os.$token.tsx`
 
-## Verificação
+No cabeçalho da página pública (logo no topo, antes do nome da empresa), exibir `empresa.logo_url` quando existir:
 
-- Build passa.
-- `/ordens` continua mostrando a lista.
-- Clicar no ícone "Abrir OS" abre `/ordens/{id}` e renderiza o detalhe.
+- Se `empresa.logo_url` estiver preenchido → mostra a imagem (altura fixa, ex.: 48–64px, com `object-contain`).
+- Se não houver logo → mantém só o nome (comportamento atual).
+
+Assim, ao abrir o link compartilhado, o cliente vê imediatamente a marca da empresa.
+
+## Detalhes técnicos
+
+- A logo já é armazenada em `empresas.logo_url` e a query da página pública já retorna a empresa — basta renderizar o `<img>`.
+- Nenhum dado novo no banco, nenhuma alteração de schema.
