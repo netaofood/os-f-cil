@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
@@ -190,37 +190,23 @@ function ClienteDialog({
     observacoes: "",
   });
 
-  // sincroniza quando abre
-  useState(() => {});
-  // simples reset ao abrir/fechar
-  if (open && editing && form.nome !== editing.nome && form.nome === "") {
-    setForm({
-      nome: editing.nome,
-      telefone: editing.telefone ?? "",
-      email: editing.email ?? "",
-      cpf: editing.cpf ?? "",
-      cidade: editing.cidade ?? "",
-      estado: editing.estado ?? "",
-      observacoes: editing.observacoes ?? "",
-    });
-  }
-
-  function handleOpenChange(o: boolean) {
-    if (!o) {
-      setForm({ nome: "", telefone: "", email: "", cpf: "", cidade: "", estado: "", observacoes: "" });
-    } else if (editing) {
-      setForm({
-        nome: editing.nome,
-        telefone: editing.telefone ?? "",
-        email: editing.email ?? "",
-        cpf: editing.cpf ?? "",
-        cidade: editing.cidade ?? "",
-        estado: editing.estado ?? "",
-        observacoes: editing.observacoes ?? "",
-      });
+  useEffect(() => {
+    if (open) {
+      if (editing) {
+        setForm({
+          nome: editing.nome,
+          telefone: editing.telefone ?? "",
+          email: editing.email ?? "",
+          cpf: editing.cpf ?? "",
+          cidade: editing.cidade ?? "",
+          estado: editing.estado ?? "",
+          observacoes: editing.observacoes ?? "",
+        });
+      } else {
+        setForm({ nome: "", telefone: "", email: "", cpf: "", cidade: "", estado: "", observacoes: "" });
+      }
     }
-    onOpenChange(o);
-  }
+  }, [open, editing]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -252,7 +238,7 @@ function ClienteDialog({
     }
     toast.success(editing ? "Cliente atualizado" : "Cliente cadastrado");
     onSaved();
-    handleOpenChange(false);
+    onOpenChange(false);
   }
 
   return (
