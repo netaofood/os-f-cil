@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, Search, Loader2, FileText, Trash2,
   Check, PackagePlus, X, Pencil, Save, ExternalLink,
+  CheckCircle2, XCircle, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -547,6 +548,27 @@ function OrdensPage() {
                 >
                   {o.status}
                 </span>
+                {o.aprovacao === "aprovada" && (
+                  <span
+                    title={`Aprovada pelo cliente${o.aprovacao_em ? " em " + new Date(o.aprovacao_em).toLocaleString("pt-BR") : ""}`}
+                    className="shrink-0 inline-flex"
+                  >
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500" aria-label="Aprovada pelo cliente" />
+                  </span>
+                )}
+                {o.aprovacao === "rejeitada" && (
+                  <span
+                    title={`Recusada pelo cliente${o.aprovacao_obs ? ": " + o.aprovacao_obs : ""}`}
+                    className="shrink-0 inline-flex"
+                  >
+                    <XCircle className="h-5 w-5 text-destructive" aria-label="Recusada pelo cliente" />
+                  </span>
+                )}
+                {!o.aprovacao && o.link_publico_token && (
+                  <span title="Aguardando resposta do cliente" className="shrink-0 inline-flex">
+                    <Clock className="h-5 w-5 text-muted-foreground" aria-label="Aguardando resposta do cliente" />
+                  </span>
+                )}
               </div>
               <Link
                 to="/ordens/$id"
