@@ -1,32 +1,33 @@
-## Objetivo
-Criar a base do projeto **OS Fácil** com identidade visual (logo + tema escuro/azul neon), pronto para receber as funcionalidades que você vai descrever depois.
+## Problema
 
-## O que será feito
+O ícone "Abrir OS" navega para `/ordens/{id}`, a URL muda, mas a tela de detalhe não aparece. Causa: `src/routes/_authenticated/ordens.tsx` é tanto a lista quanto o "pai" da rota `/ordens/$id`, mas não renderiza `<Outlet />`. No TanStack Router, sem `<Outlet />` o filho nunca monta.
 
-1. **Logo como asset**
-   - Subir a imagem enviada para o CDN (Lovable Assets) e referenciar via pointer JSON em `src/assets/`.
+## Solução
 
-2. **Tema visual (design system)**
-   - Atualizar `src/styles.css` para tema escuro por padrão:
-     - Fundo preto (`oklch` próximo de #000)
-     - Primária azul neon (~#1E90FF / azul do logo)
-     - Foreground branco
-     - Tokens semânticos coerentes (card, border, ring, accent) em light e dark
-   - Aplicar classe `dark` no `<html>` para iniciar em modo escuro.
+Separar layout, lista e detalhe em três arquivos:
 
-3. **Página inicial (`src/routes/index.tsx`)**
-   - Substituir o placeholder por uma landing simples e limpa:
-     - Logo centralizada com leve glow
-     - Título "OS Fácil"
-     - Subtítulo curto ("Gestão de Ordens de Serviço — em breve")
-   - Atualizar `head()` com title/description/og adequados ("OS Fácil").
+```text
+src/routes/_authenticated/
+  ordens.tsx          -> layout: apenas renderiza <Outlet />
+  ordens.index.tsx    -> lista de OS (conteúdo atual de ordens.tsx)
+  ordens.$id.tsx      -> detalhe da OS (já existe, sem mudanças)
+```
 
-4. **Metadados do app**
-   - Atualizar título padrão em `__root.tsx` para "OS Fácil".
+## Passos
 
-## Detalhes técnicos
-- Sem backend ainda — Lovable Cloud só será ativado quando você pedir funcionalidades que exigem (login, banco, etc.).
-- Sem rotas extras nesta etapa — adicionaremos conforme você descrever o escopo (ex.: clientes, ordens de serviço, dashboard).
+1. Renomear o atual `src/routes/_authenticated/ordens.tsx` para `src/routes/_authenticated/ordens.index.tsx` e trocar `createFileRoute("/_authenticated/ordens")` por `createFileRoute("/_authenticated/ordens/")`.
+2. Criar novo `src/routes/_authenticated/ordens.tsx` mínimo:
+   ```tsx
+   import { createFileRoute, Outlet } from "@tanstack/react-router";
+   export const Route = createFileRoute("/_authenticated/ordens")({
+     component: () => <Outlet />,
+   });
+   ```
+3. Deixar `ordens.$id.tsx` como está.
+4. O `routeTree.gen.ts` é regenerado automaticamente pelo plugin.
 
-## Próximo passo
-Depois que essa base estiver pronta, me conta o que o OS Fácil precisa fazer (cadastro de clientes? ordens de serviço? técnicos? relatórios?) e eu sigo construindo.
+## Verificação
+
+- Build passa.
+- `/ordens` continua mostrando a lista.
+- Clicar no ícone "Abrir OS" abre `/ordens/{id}` e renderiza o detalhe.

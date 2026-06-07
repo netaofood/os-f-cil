@@ -40,7 +40,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { Tables } from "@/integrations/supabase/types";
 
-export const Route = createFileRoute("/_authenticated/ordens")({
+export const Route = createFileRoute("/_authenticated/ordens/")({
   component: OrdensPage,
 });
 
