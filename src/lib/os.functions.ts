@@ -19,7 +19,7 @@ export const getOSByToken = createServerFn({ method: "POST" })
       .from("itens_os")
       .select("*")
       .eq("os_id", os.id)
-      .order("created_at");
+      .order("descricao");
 
     return { ...os, itens: itens ?? [] };
   });
