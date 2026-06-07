@@ -549,25 +549,25 @@ function OrdensPage() {
                   {o.status}
                 </span>
                 {o.aprovacao === "aprovada" && (
-                  <CheckCircle2
-                    className="h-5 w-5 text-emerald-500 shrink-0"
-                    aria-label="Aprovada pelo cliente"
+                  <span
                     title={`Aprovada pelo cliente${o.aprovacao_em ? " em " + new Date(o.aprovacao_em).toLocaleString("pt-BR") : ""}`}
-                  />
+                    className="shrink-0 inline-flex"
+                  >
+                    <CheckCircle2 className="h-5 w-5 text-emerald-500" aria-label="Aprovada pelo cliente" />
+                  </span>
                 )}
                 {o.aprovacao === "rejeitada" && (
-                  <XCircle
-                    className="h-5 w-5 text-destructive shrink-0"
-                    aria-label="Recusada pelo cliente"
+                  <span
                     title={`Recusada pelo cliente${o.aprovacao_obs ? ": " + o.aprovacao_obs : ""}`}
-                  />
+                    className="shrink-0 inline-flex"
+                  >
+                    <XCircle className="h-5 w-5 text-destructive" aria-label="Recusada pelo cliente" />
+                  </span>
                 )}
                 {!o.aprovacao && o.link_publico_token && (
-                  <Clock
-                    className="h-5 w-5 text-muted-foreground shrink-0"
-                    aria-label="Aguardando resposta do cliente"
-                    title="Aguardando resposta do cliente"
-                  />
+                  <span title="Aguardando resposta do cliente" className="shrink-0 inline-flex">
+                    <Clock className="h-5 w-5 text-muted-foreground" aria-label="Aguardando resposta do cliente" />
+                  </span>
                 )}
               </div>
               <Link
