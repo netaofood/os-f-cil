@@ -14,9 +14,11 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
+import { Route as AuthenticatedOrdensRouteImport } from './routes/_authenticated/ordens'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
+import { Route as AuthenticatedOrdensIdRouteImport } from './routes/_authenticated/ordens.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -42,6 +44,11 @@ const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
   path: '/produtos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOrdensRoute = AuthenticatedOrdensRouteImport.update({
+  id: '/ordens',
+  path: '/ordens',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -58,6 +65,11 @@ const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
   path: '/clientes',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOrdensIdRoute = AuthenticatedOrdensIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedOrdensRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -65,8 +77,10 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/ordens': typeof AuthenticatedOrdensRouteWithChildren
   '/produtos': typeof AuthenticatedProdutosRoute
   '/setup': typeof AuthenticatedSetupRoute
+  '/ordens/$id': typeof AuthenticatedOrdensIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -74,8 +88,10 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/ordens': typeof AuthenticatedOrdensRouteWithChildren
   '/produtos': typeof AuthenticatedProdutosRoute
   '/setup': typeof AuthenticatedSetupRoute
+  '/ordens/$id': typeof AuthenticatedOrdensIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -85,8 +101,10 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/ordens': typeof AuthenticatedOrdensRouteWithChildren
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/setup': typeof AuthenticatedSetupRoute
+  '/_authenticated/ordens/$id': typeof AuthenticatedOrdensIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -96,8 +114,10 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/configuracoes'
     | '/dashboard'
+    | '/ordens'
     | '/produtos'
     | '/setup'
+    | '/ordens/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -105,8 +125,10 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/configuracoes'
     | '/dashboard'
+    | '/ordens'
     | '/produtos'
     | '/setup'
+    | '/ordens/$id'
   id:
     | '__root__'
     | '/'
@@ -115,8 +137,10 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
+    | '/_authenticated/ordens'
     | '/_authenticated/produtos'
     | '/_authenticated/setup'
+    | '/_authenticated/ordens/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -162,6 +186,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProdutosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ordens': {
+      id: '/_authenticated/ordens'
+      path: '/ordens'
+      fullPath: '/ordens'
+      preLoaderRoute: typeof AuthenticatedOrdensRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -183,13 +214,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedClientesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ordens/$id': {
+      id: '/_authenticated/ordens/$id'
+      path: '/$id'
+      fullPath: '/ordens/$id'
+      preLoaderRoute: typeof AuthenticatedOrdensIdRouteImport
+      parentRoute: typeof AuthenticatedOrdensRoute
+    }
   }
 }
+
+interface AuthenticatedOrdensRouteChildren {
+  AuthenticatedOrdensIdRoute: typeof AuthenticatedOrdensIdRoute
+}
+
+const AuthenticatedOrdensRouteChildren: AuthenticatedOrdensRouteChildren = {
+  AuthenticatedOrdensIdRoute: AuthenticatedOrdensIdRoute,
+}
+
+const AuthenticatedOrdensRouteWithChildren =
+  AuthenticatedOrdensRoute._addFileChildren(AuthenticatedOrdensRouteChildren)
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedOrdensRoute: typeof AuthenticatedOrdensRouteWithChildren
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
 }
@@ -198,6 +248,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedOrdensRoute: AuthenticatedOrdensRouteWithChildren,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedSetupRoute: AuthenticatedSetupRoute,
 }

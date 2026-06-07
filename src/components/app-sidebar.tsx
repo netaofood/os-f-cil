@@ -26,7 +26,7 @@ import logoAsset from "@/assets/os-facil-logo.png.asset.json";
 
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Ordens de Serviço", url: "/ordens", icon: FileText, soon: true },
+  { title: "Ordens de Serviço", url: "/ordens", icon: FileText },
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Produtos & Serviços", url: "/produtos", icon: Package },
   { title: "Agenda", url: "/agenda", icon: Calendar, soon: true },
