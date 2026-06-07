@@ -164,8 +164,62 @@ function ConfigPage() {
               <CardTitle>Dados da empresa</CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="mb-5 pb-5 border-b border-border">
+                <Label className="block mb-2">Logo da empresa</Label>
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-20 rounded-md border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                    {logoUrl ? (
+                      <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
+                    ) : (
+                      <ImageIcon className="h-7 w-7 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      className="hidden"
+                      onChange={handleLogoFile}
+                    />
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingLogo}
+                      >
+                        {uploadingLogo ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                        ) : (
+                          <Upload className="h-3.5 w-3.5 mr-1" />
+                        )}
+                        {logoUrl ? "Trocar logo" : "Enviar logo"}
+                      </Button>
+                      {logoUrl && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleRemoveLogo}
+                          disabled={uploadingLogo}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Remover
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      PNG, JPG, WebP ou SVG · até 2 MB. Aparece nas OS e Faturas.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <form onSubmit={handleSave} className="space-y-3">
                 <div className="space-y-1.5">
+
                   <Label htmlFor="e-nome">Nome *</Label>
                   <Input
                     id="e-nome"
