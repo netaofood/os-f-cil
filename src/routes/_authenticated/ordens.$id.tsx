@@ -561,7 +561,7 @@ function OrdemDetailPage() {
             {publicUrl ? (
               <>
                 <div className="flex gap-2">
-                  <Input value={publicUrl} readOnly className="text-xs" />
+                  <Input value={shareMessage} readOnly className="text-xs" />
                   <Button size="icon" variant="outline" onClick={copyLink}>
                     {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                   </Button>
