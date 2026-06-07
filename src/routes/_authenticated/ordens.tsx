@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, Search, Loader2, FileText, Trash2,
@@ -548,13 +548,14 @@ function OrdensPage() {
                   {o.status}
                 </span>
               </div>
-              <a
-                href={`/ordens/${o.id}`}
+              <Link
+                to="/ordens/$id"
+                params={{ id: o.id }}
                 className="h-9 w-9 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 transition-colors"
                 title="Abrir OS"
               >
                 <ExternalLink className="h-4 w-4" />
-              </a>
+              </Link>
               <Button
                 size="icon"
                 variant="ghost"
