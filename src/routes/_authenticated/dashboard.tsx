@@ -76,7 +76,6 @@ const STATUS_COLORS: Record<string, string> = {
   concluida: "#10b981",
   cancelada: "#ef4444",
   pendente: "#f59e0b",
-  pendente: "#f59e0b",
   pago: "#10b981",
   vencido: "#ef4444",
   cancelado: "#6b7280",
