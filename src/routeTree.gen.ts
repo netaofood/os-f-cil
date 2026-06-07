@@ -16,6 +16,7 @@ import { Route as OsTokenRouteImport } from './routes/os.$token'
 import { Route as FaturaTokenRouteImport } from './routes/fatura.$token'
 import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
+import { Route as AuthenticatedOrdensRouteImport } from './routes/_authenticated/ordens'
 import { Route as AuthenticatedFaturasRouteImport } from './routes/_authenticated/faturas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
@@ -58,6 +59,11 @@ const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
   path: '/produtos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOrdensRoute = AuthenticatedOrdensRouteImport.update({
+  id: '/ordens',
+  path: '/ordens',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFaturasRoute = AuthenticatedFaturasRouteImport.update({
   id: '/faturas',
   path: '/faturas',
@@ -81,14 +87,14 @@ const AuthenticatedClientesRoute = AuthenticatedClientesRouteImport.update({
 } as any)
 const AuthenticatedOrdensIndexRoute =
   AuthenticatedOrdensIndexRouteImport.update({
-    id: '/ordens/',
-    path: '/ordens/',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedOrdensRoute,
   } as any)
 const AuthenticatedOrdensIdRoute = AuthenticatedOrdensIdRouteImport.update({
-  id: '/ordens/$id',
-  path: '/ordens/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedOrdensRoute,
 } as any)
 const AuthenticatedFaturasIdRoute = AuthenticatedFaturasIdRouteImport.update({
   id: '/$id',
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/faturas': typeof AuthenticatedFaturasRouteWithChildren
+  '/ordens': typeof AuthenticatedOrdensRouteWithChildren
   '/produtos': typeof AuthenticatedProdutosRoute
   '/setup': typeof AuthenticatedSetupRoute
   '/fatura/$token': typeof FaturaTokenRoute
@@ -135,6 +142,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/faturas': typeof AuthenticatedFaturasRouteWithChildren
+  '/_authenticated/ordens': typeof AuthenticatedOrdensRouteWithChildren
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/setup': typeof AuthenticatedSetupRoute
   '/fatura/$token': typeof FaturaTokenRoute
@@ -152,6 +160,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/dashboard'
     | '/faturas'
+    | '/ordens'
     | '/produtos'
     | '/setup'
     | '/fatura/$token'
@@ -183,6 +192,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
     | '/_authenticated/faturas'
+    | '/_authenticated/ordens'
     | '/_authenticated/produtos'
     | '/_authenticated/setup'
     | '/fatura/$token'
@@ -251,6 +261,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProdutosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ordens': {
+      id: '/_authenticated/ordens'
+      path: '/ordens'
+      fullPath: '/ordens'
+      preLoaderRoute: typeof AuthenticatedOrdensRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/faturas': {
       id: '/_authenticated/faturas'
       path: '/faturas'
@@ -281,17 +298,17 @@ declare module '@tanstack/react-router' {
     }
     '/_authenticated/ordens/': {
       id: '/_authenticated/ordens/'
-      path: '/ordens'
+      path: '/'
       fullPath: '/ordens/'
       preLoaderRoute: typeof AuthenticatedOrdensIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOrdensRoute
     }
     '/_authenticated/ordens/$id': {
       id: '/_authenticated/ordens/$id'
-      path: '/ordens/$id'
+      path: '/$id'
       fullPath: '/ordens/$id'
       preLoaderRoute: typeof AuthenticatedOrdensIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedOrdensRoute
     }
     '/_authenticated/faturas/$id': {
       id: '/_authenticated/faturas/$id'
@@ -314,15 +331,27 @@ const AuthenticatedFaturasRouteChildren: AuthenticatedFaturasRouteChildren = {
 const AuthenticatedFaturasRouteWithChildren =
   AuthenticatedFaturasRoute._addFileChildren(AuthenticatedFaturasRouteChildren)
 
+interface AuthenticatedOrdensRouteChildren {
+  AuthenticatedOrdensIdRoute: typeof AuthenticatedOrdensIdRoute
+  AuthenticatedOrdensIndexRoute: typeof AuthenticatedOrdensIndexRoute
+}
+
+const AuthenticatedOrdensRouteChildren: AuthenticatedOrdensRouteChildren = {
+  AuthenticatedOrdensIdRoute: AuthenticatedOrdensIdRoute,
+  AuthenticatedOrdensIndexRoute: AuthenticatedOrdensIndexRoute,
+}
+
+const AuthenticatedOrdensRouteWithChildren =
+  AuthenticatedOrdensRoute._addFileChildren(AuthenticatedOrdensRouteChildren)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedFaturasRoute: typeof AuthenticatedFaturasRouteWithChildren
+  AuthenticatedOrdensRoute: typeof AuthenticatedOrdensRouteWithChildren
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
-  AuthenticatedOrdensIdRoute: typeof AuthenticatedOrdensIdRoute
-  AuthenticatedOrdensIndexRoute: typeof AuthenticatedOrdensIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -330,10 +359,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedFaturasRoute: AuthenticatedFaturasRouteWithChildren,
+  AuthenticatedOrdensRoute: AuthenticatedOrdensRouteWithChildren,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedSetupRoute: AuthenticatedSetupRoute,
-  AuthenticatedOrdensIdRoute: AuthenticatedOrdensIdRoute,
-  AuthenticatedOrdensIndexRoute: AuthenticatedOrdensIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -349,3 +377,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
