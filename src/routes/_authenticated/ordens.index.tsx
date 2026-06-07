@@ -548,7 +548,27 @@ function OrdensPage() {
                 >
                   {o.status}
                 </span>
-              </div>
+                {o.aprovacao === "aprovada" && (
+                  <CheckCircle2
+                    className="h-5 w-5 text-emerald-500 shrink-0"
+                    aria-label="Aprovada pelo cliente"
+                    title={`Aprovada pelo cliente${o.aprovacao_em ? " em " + new Date(o.aprovacao_em).toLocaleString("pt-BR") : ""}`}
+                  />
+                )}
+                {o.aprovacao === "rejeitada" && (
+                  <XCircle
+                    className="h-5 w-5 text-destructive shrink-0"
+                    aria-label="Recusada pelo cliente"
+                    title={`Recusada pelo cliente${o.aprovacao_obs ? ": " + o.aprovacao_obs : ""}`}
+                  />
+                )}
+                {!o.aprovacao && o.link_publico_token && (
+                  <Clock
+                    className="h-5 w-5 text-muted-foreground shrink-0"
+                    aria-label="Aguardando resposta do cliente"
+                    title="Aguardando resposta do cliente"
+                  />
+                )}
               <Link
                 to="/ordens/$id"
                 params={{ id: o.id }}
