@@ -547,6 +547,7 @@ export type Database = {
       }
       is_admin_or_super: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
+      next_fatura_numero: { Args: { _empresa_id: string }; Returns: string }
       next_os_numero: { Args: { _empresa_id: string }; Returns: string }
       same_empresa: { Args: { _empresa_id: string }; Returns: boolean }
     }
