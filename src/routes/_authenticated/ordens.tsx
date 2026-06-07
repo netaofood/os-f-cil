@@ -1,17 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Plus,
-  Search,
-  Loader2,
-  FileText,
-  Trash2,
-  Check,
-  PackagePlus,
-  X,
-  Pencil,
-  Save,
+  Plus, Search, Loader2, FileText, Trash2,
+  Check, PackagePlus, X, Pencil, Save, ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -536,11 +528,7 @@ function OrdensPage() {
               key={o.id}
               className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3 hover:bg-accent/30 transition"
             >
-              <Link
-                to="/ordens/$id"
-                params={{ id: o.id }}
-                className="flex-1 min-w-0 flex items-center gap-3"
-              >
+              <div className="flex-1 min-w-0 flex items-center gap-3">
                 <div className="font-mono text-sm font-semibold w-16 shrink-0">
                   #{o.numero}
                 </div>
@@ -559,7 +547,14 @@ function OrdensPage() {
                 >
                   {o.status}
                 </span>
-              </Link>
+              </div>
+              <a
+                href={`/ordens/${o.id}`}
+                className="h-9 w-9 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 transition-colors"
+                title="Abrir OS"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </a>
               <Button
                 size="icon"
                 variant="ghost"
