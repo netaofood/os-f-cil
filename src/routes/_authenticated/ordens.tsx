@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -535,10 +535,9 @@ function OrdensPage() {
               key={o.id}
               className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3 hover:bg-accent/30 transition"
             >
-              <Link
-                to="/ordens/$id"
-                params={{ id: o.id }}
-                className="flex-1 min-w-0 flex items-center gap-3"
+              <div
+                className="flex-1 min-w-0 flex items-center gap-3 cursor-pointer"
+                onClick={() => { window.location.href = `/ordens/${o.id}`; }}
               >
                 <div className="font-mono text-sm font-semibold w-16 shrink-0">
                   #{o.numero}
@@ -558,7 +557,7 @@ function OrdensPage() {
                 >
                   {o.status}
                 </span>
-              </Link>
+              </div>
               <Button
                 size="icon"
                 variant="ghost"
