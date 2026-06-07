@@ -348,7 +348,26 @@ function OrdensPage() {
       if (error) throw error;
       return data as OS[];
     },
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
+
+  // Realtime: atualiza a listagem quando uma OS muda (ex.: aprovação do cliente)
+  useEffect(() => {
+    const channel = supabase
+      .channel("ordens-list-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ordens_servico" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["ordens"] });
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
 
   const filtered = ordens.filter((o) => {
     if (statusFilter !== "todos" && o.status !== statusFilter) return false;
