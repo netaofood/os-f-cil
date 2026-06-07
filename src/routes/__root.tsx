@@ -85,6 +85,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Gestão simples e rápida de ordens de serviço." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "OS Fácil" },
+      { name: "twitter:description", content: "Gestão simples e rápida de ordens de serviço." },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/jEmwZVM5Arhm1FKnHLSnzqpSulm2/social-images/social-1780852644026-ChatGPT_Image_2_de_jun._de_2026,_21_02_03.webp" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/jEmwZVM5Arhm1FKnHLSnzqpSulm2/social-images/social-1780852644026-ChatGPT_Image_2_de_jun._de_2026,_21_02_03.webp" },
     ],
     links: [
       {
