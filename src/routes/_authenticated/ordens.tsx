@@ -10,6 +10,8 @@ import {
   Check,
   PackagePlus,
   X,
+  Pencil,
+  Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -243,6 +245,51 @@ function OrdensPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [toDelete, setToDelete] = useState<OS | null>(null);
+
+  // Modal Editar OS
+  const [toEdit, setToEdit] = useState<OS | null>(null);
+  const [editForm, setEditForm] = useState({
+    cliente_id: "",
+    status: "",
+    forma_pagamento: "",
+    diagnostico: "",
+    observacoes: "",
+  });
+  const [editSaving, setEditSaving] = useState(false);
+
+  function openEdit(o: OS) {
+    setEditForm({
+      cliente_id: o.cliente_id ?? "",
+      status: o.status,
+      forma_pagamento: o.forma_pagamento ?? "",
+      diagnostico: o.diagnostico ?? "",
+      observacoes: o.observacoes ?? "",
+    });
+    setToEdit(o);
+  }
+
+  async function handleEditSave() {
+    if (!toEdit) return;
+    setEditSaving(true);
+    const { error } = await supabase
+      .from("ordens_servico")
+      .update({
+        cliente_id: editForm.cliente_id || null,
+        status: editForm.status,
+        forma_pagamento: editForm.forma_pagamento || null,
+        diagnostico: editForm.diagnostico || null,
+        observacoes: editForm.observacoes || null,
+      })
+      .eq("id", toEdit.id);
+    setEditSaving(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("OS atualizada");
+      setToEdit(null);
+      qc.invalidateQueries({ queryKey: ["ordens"] });
+    }
+  }
 
   // Modal Nova OS
   const [modalOpen, setModalOpen] = useState(false);
@@ -515,6 +562,14 @@ function OrdensPage() {
               <Button
                 size="icon"
                 variant="ghost"
+                onClick={() => openEdit(o)}
+                className="text-muted-foreground hover:text-foreground shrink-0"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
                 onClick={() => setToDelete(o)}
                 className="text-destructive hover:text-destructive"
               >
@@ -690,6 +745,130 @@ function OrdensPage() {
                 <Plus className="h-4 w-4 mr-1" />
               )}
               Criar OS
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Editar OS */}
+      <Dialog open={!!toEdit} onOpenChange={(o) => !editSaving && !o && setToEdit(null)}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar OS #{toEdit?.numero}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-1">
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Cliente</Label>
+                <Select
+                  value={editForm.cliente_id || "_none"}
+                  onValueChange={(v) =>
+                    setEditForm({ ...editForm, cliente_id: v === "_none" ? "" : v })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— Sem cliente —</SelectItem>
+                    {clientes.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Status</Label>
+                <Select
+                  value={editForm.status}
+                  onValueChange={(v) => setEditForm({ ...editForm, status: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statuses.map((s) => (
+                      <SelectItem key={s.id} value={s.nome}>
+                        {s.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>
+                Diagnóstico{" "}
+                <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+              </Label>
+              <Textarea
+                value={editForm.diagnostico}
+                onChange={(e) => setEditForm({ ...editForm, diagnostico: e.target.value })}
+                rows={3}
+                maxLength={2000}
+                placeholder="Descreva o problema ou serviço solicitado…"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>
+                Observações{" "}
+                <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+              </Label>
+              <Textarea
+                value={editForm.observacoes}
+                onChange={(e) => setEditForm({ ...editForm, observacoes: e.target.value })}
+                rows={2}
+                maxLength={2000}
+                placeholder="Informações adicionais…"
+              />
+            </div>
+
+            {formas.length > 0 && (
+              <div className="space-y-1.5">
+                <Label>Forma de pagamento</Label>
+                <Select
+                  value={editForm.forma_pagamento || "_none"}
+                  onValueChange={(v) =>
+                    setEditForm({ ...editForm, forma_pagamento: v === "_none" ? "" : v })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">— Não definida —</SelectItem>
+                    {formas.map((f) => (
+                      <SelectItem key={f.id} value={f.nome}>
+                        {f.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setToEdit(null)}
+              disabled={editSaving}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleEditSave} disabled={editSaving}>
+              {editSaving ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-1" />
+              )}
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
