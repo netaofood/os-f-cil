@@ -12,13 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FaturaTokenRouteImport } from './routes/fatura.$token'
 import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
 import { Route as AuthenticatedProdutosRouteImport } from './routes/_authenticated/produtos'
 import { Route as AuthenticatedOrdensRouteImport } from './routes/_authenticated/ordens'
+import { Route as AuthenticatedFaturasRouteImport } from './routes/_authenticated/faturas'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedClientesRouteImport } from './routes/_authenticated/clientes'
 import { Route as AuthenticatedOrdensIdRouteImport } from './routes/_authenticated/ordens.$id'
+import { Route as AuthenticatedFaturasIdRouteImport } from './routes/_authenticated/faturas.$id'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -34,6 +37,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FaturaTokenRoute = FaturaTokenRouteImport.update({
+  id: '/fatura/$token',
+  path: '/fatura/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedSetupRoute = AuthenticatedSetupRouteImport.update({
   id: '/setup',
   path: '/setup',
@@ -47,6 +55,11 @@ const AuthenticatedProdutosRoute = AuthenticatedProdutosRouteImport.update({
 const AuthenticatedOrdensRoute = AuthenticatedOrdensRouteImport.update({
   id: '/ordens',
   path: '/ordens',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFaturasRoute = AuthenticatedFaturasRouteImport.update({
+  id: '/faturas',
+  path: '/faturas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -70,6 +83,11 @@ const AuthenticatedOrdensIdRoute = AuthenticatedOrdensIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedOrdensRoute,
 } as any)
+const AuthenticatedFaturasIdRoute = AuthenticatedFaturasIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthenticatedFaturasRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -77,9 +95,12 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/faturas': typeof AuthenticatedFaturasRouteWithChildren
   '/ordens': typeof AuthenticatedOrdensRouteWithChildren
   '/produtos': typeof AuthenticatedProdutosRoute
   '/setup': typeof AuthenticatedSetupRoute
+  '/fatura/$token': typeof FaturaTokenRoute
+  '/faturas/$id': typeof AuthenticatedFaturasIdRoute
   '/ordens/$id': typeof AuthenticatedOrdensIdRoute
 }
 export interface FileRoutesByTo {
@@ -88,9 +109,12 @@ export interface FileRoutesByTo {
   '/clientes': typeof AuthenticatedClientesRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/faturas': typeof AuthenticatedFaturasRouteWithChildren
   '/ordens': typeof AuthenticatedOrdensRouteWithChildren
   '/produtos': typeof AuthenticatedProdutosRoute
   '/setup': typeof AuthenticatedSetupRoute
+  '/fatura/$token': typeof FaturaTokenRoute
+  '/faturas/$id': typeof AuthenticatedFaturasIdRoute
   '/ordens/$id': typeof AuthenticatedOrdensIdRoute
 }
 export interface FileRoutesById {
@@ -101,9 +125,12 @@ export interface FileRoutesById {
   '/_authenticated/clientes': typeof AuthenticatedClientesRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/faturas': typeof AuthenticatedFaturasRouteWithChildren
   '/_authenticated/ordens': typeof AuthenticatedOrdensRouteWithChildren
   '/_authenticated/produtos': typeof AuthenticatedProdutosRoute
   '/_authenticated/setup': typeof AuthenticatedSetupRoute
+  '/fatura/$token': typeof FaturaTokenRoute
+  '/_authenticated/faturas/$id': typeof AuthenticatedFaturasIdRoute
   '/_authenticated/ordens/$id': typeof AuthenticatedOrdensIdRoute
 }
 export interface FileRouteTypes {
@@ -114,9 +141,12 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/configuracoes'
     | '/dashboard'
+    | '/faturas'
     | '/ordens'
     | '/produtos'
     | '/setup'
+    | '/fatura/$token'
+    | '/faturas/$id'
     | '/ordens/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -125,9 +155,12 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/configuracoes'
     | '/dashboard'
+    | '/faturas'
     | '/ordens'
     | '/produtos'
     | '/setup'
+    | '/fatura/$token'
+    | '/faturas/$id'
     | '/ordens/$id'
   id:
     | '__root__'
@@ -137,9 +170,12 @@ export interface FileRouteTypes {
     | '/_authenticated/clientes'
     | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
+    | '/_authenticated/faturas'
     | '/_authenticated/ordens'
     | '/_authenticated/produtos'
     | '/_authenticated/setup'
+    | '/fatura/$token'
+    | '/_authenticated/faturas/$id'
     | '/_authenticated/ordens/$id'
   fileRoutesById: FileRoutesById
 }
@@ -147,6 +183,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  FaturaTokenRoute: typeof FaturaTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -172,6 +209,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/fatura/$token': {
+      id: '/fatura/$token'
+      path: '/fatura/$token'
+      fullPath: '/fatura/$token'
+      preLoaderRoute: typeof FaturaTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/setup': {
       id: '/_authenticated/setup'
       path: '/setup'
@@ -191,6 +235,13 @@ declare module '@tanstack/react-router' {
       path: '/ordens'
       fullPath: '/ordens'
       preLoaderRoute: typeof AuthenticatedOrdensRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/faturas': {
+      id: '/_authenticated/faturas'
+      path: '/faturas'
+      fullPath: '/faturas'
+      preLoaderRoute: typeof AuthenticatedFaturasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -221,8 +272,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOrdensIdRouteImport
       parentRoute: typeof AuthenticatedOrdensRoute
     }
+    '/_authenticated/faturas/$id': {
+      id: '/_authenticated/faturas/$id'
+      path: '/$id'
+      fullPath: '/faturas/$id'
+      preLoaderRoute: typeof AuthenticatedFaturasIdRouteImport
+      parentRoute: typeof AuthenticatedFaturasRoute
+    }
   }
 }
+
+interface AuthenticatedFaturasRouteChildren {
+  AuthenticatedFaturasIdRoute: typeof AuthenticatedFaturasIdRoute
+}
+
+const AuthenticatedFaturasRouteChildren: AuthenticatedFaturasRouteChildren = {
+  AuthenticatedFaturasIdRoute: AuthenticatedFaturasIdRoute,
+}
+
+const AuthenticatedFaturasRouteWithChildren =
+  AuthenticatedFaturasRoute._addFileChildren(AuthenticatedFaturasRouteChildren)
 
 interface AuthenticatedOrdensRouteChildren {
   AuthenticatedOrdensIdRoute: typeof AuthenticatedOrdensIdRoute
@@ -239,6 +308,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClientesRoute: typeof AuthenticatedClientesRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedFaturasRoute: typeof AuthenticatedFaturasRouteWithChildren
   AuthenticatedOrdensRoute: typeof AuthenticatedOrdensRouteWithChildren
   AuthenticatedProdutosRoute: typeof AuthenticatedProdutosRoute
   AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
@@ -248,6 +318,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClientesRoute: AuthenticatedClientesRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedFaturasRoute: AuthenticatedFaturasRouteWithChildren,
   AuthenticatedOrdensRoute: AuthenticatedOrdensRouteWithChildren,
   AuthenticatedProdutosRoute: AuthenticatedProdutosRoute,
   AuthenticatedSetupRoute: AuthenticatedSetupRoute,
@@ -260,6 +331,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  FaturaTokenRoute: FaturaTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

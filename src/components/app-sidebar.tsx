@@ -7,6 +7,7 @@ import {
   LogOut,
   FileText,
   Calendar,
+  Receipt,
 } from "lucide-react";
 import {
   Sidebar,
@@ -27,6 +28,7 @@ import logoAsset from "@/assets/os-facil-logo.png.asset.json";
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Ordens de Serviço", url: "/ordens", icon: FileText },
+  { title: "Faturas", url: "/faturas", icon: Receipt },
   { title: "Clientes", url: "/clientes", icon: Users },
   { title: "Produtos & Serviços", url: "/produtos", icon: Package },
   { title: "Agenda", url: "/agenda", icon: Calendar, soon: true },
