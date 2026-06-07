@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload, Trash2, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: ConfigPage,
@@ -34,6 +35,10 @@ function ConfigPage() {
     cor_destaque: "#f97316",
   });
   const [saving, setSaving] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     if (empresa) {
@@ -49,8 +54,75 @@ function ConfigPage() {
         banco: empresa.banco ?? "",
         cor_destaque: empresa.cor_destaque || "#f97316",
       });
+      setLogoUrl(empresa.logo_url ?? null);
     }
   }, [empresa]);
+
+  async function handleLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !empresa) return;
+
+    const allowed = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml"];
+    if (!allowed.includes(file.type)) {
+      toast.error("Formato inválido. Use PNG, JPG, WebP ou SVG.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Arquivo muito grande (máx. 2 MB).");
+      return;
+    }
+
+    setUploadingLogo(true);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    const path = `${empresa.id}/logo-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("logos-empresas")
+      .upload(path, file, { upsert: true, contentType: file.type });
+
+    if (uploadError) {
+      setUploadingLogo(false);
+      toast.error(uploadError.message);
+      return;
+    }
+
+    const { data: pub } = supabase.storage.from("logos-empresas").getPublicUrl(path);
+    const publicUrl = pub.publicUrl;
+
+    const { error: updateError } = await supabase
+      .from("empresas")
+      .update({ logo_url: publicUrl })
+      .eq("id", empresa.id);
+
+    setUploadingLogo(false);
+    if (updateError) {
+      toast.error(updateError.message);
+      return;
+    }
+
+    setLogoUrl(publicUrl);
+    toast.success("Logo atualizada");
+    qc.invalidateQueries({ queryKey: ["current-empresa"] });
+  }
+
+  async function handleRemoveLogo() {
+    if (!empresa) return;
+    setUploadingLogo(true);
+    const { error } = await supabase
+      .from("empresas")
+      .update({ logo_url: null })
+      .eq("id", empresa.id);
+    setUploadingLogo(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setLogoUrl(null);
+    toast.success("Logo removida");
+    qc.invalidateQueries({ queryKey: ["current-empresa"] });
+  }
+
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -92,8 +164,62 @@ function ConfigPage() {
               <CardTitle>Dados da empresa</CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="mb-5 pb-5 border-b border-border">
+                <Label className="block mb-2">Logo da empresa</Label>
+                <div className="flex items-center gap-4">
+                  <div className="h-20 w-20 rounded-md border border-border bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                    {logoUrl ? (
+                      <img src={logoUrl} alt="Logo" className="h-full w-full object-contain" />
+                    ) : (
+                      <ImageIcon className="h-7 w-7 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      className="hidden"
+                      onChange={handleLogoFile}
+                    />
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingLogo}
+                      >
+                        {uploadingLogo ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                        ) : (
+                          <Upload className="h-3.5 w-3.5 mr-1" />
+                        )}
+                        {logoUrl ? "Trocar logo" : "Enviar logo"}
+                      </Button>
+                      {logoUrl && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={handleRemoveLogo}
+                          disabled={uploadingLogo}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Remover
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      PNG, JPG, WebP ou SVG · até 2 MB. Aparece nas OS e Faturas.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <form onSubmit={handleSave} className="space-y-3">
                 <div className="space-y-1.5">
+
                   <Label htmlFor="e-nome">Nome *</Label>
                   <Input
                     id="e-nome"
