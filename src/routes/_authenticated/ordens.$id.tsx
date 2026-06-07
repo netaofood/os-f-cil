@@ -278,21 +278,24 @@ function OrdemDetailPage() {
     ? `${window.location.origin}/os/${os.link_publico_token}`
     : null;
 
+  const clienteNomeMsg = clientes.find((c) => c.id === os?.cliente_id)?.nome ?? "";
+  const shareMessage = publicUrl
+    ? `Olá ${clienteNomeMsg}, segue seu orçamento ${publicUrl}`
+    : "";
+
   function copyLink() {
-    if (!publicUrl) return;
-    navigator.clipboard.writeText(publicUrl);
+    if (!shareMessage) return;
+    navigator.clipboard.writeText(shareMessage);
     setCopied(true);
-    toast.success("Link copiado!");
+    toast.success("Mensagem copiada!");
     setTimeout(() => setCopied(false), 2000);
   }
 
   function openWhatsApp() {
-    if (!publicUrl) return;
-    const msg = encodeURIComponent(
-      `Olá! Segue o link do orçamento OS #${os?.numero} para sua aprovação:\n${publicUrl}`
-    );
-    window.open(`https://wa.me/?text=${msg}`, "_blank");
+    if (!shareMessage) return;
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareMessage)}`, "_blank");
   }
+
 
   const clienteNome = clientes.find((c) => c.id === os?.cliente_id)?.nome ?? "Sem cliente";
   const statusCor = statuses.find((s) => s.nome === os?.status)?.cor ?? "#6b7280";
@@ -558,7 +561,7 @@ function OrdemDetailPage() {
             {publicUrl ? (
               <>
                 <div className="flex gap-2">
-                  <Input value={publicUrl} readOnly className="text-xs" />
+                  <Input value={shareMessage} readOnly className="text-xs" />
                   <Button size="icon" variant="outline" onClick={copyLink}>
                     {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
                   </Button>
