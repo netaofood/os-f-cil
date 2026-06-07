@@ -242,7 +242,7 @@ function ClienteDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{editing ? "Editar cliente" : "Novo cliente"}</DialogTitle>
