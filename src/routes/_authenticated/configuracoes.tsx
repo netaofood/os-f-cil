@@ -54,8 +54,75 @@ function ConfigPage() {
         banco: empresa.banco ?? "",
         cor_destaque: empresa.cor_destaque || "#f97316",
       });
+      setLogoUrl(empresa.logo_url ?? null);
     }
   }, [empresa]);
+
+  async function handleLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !empresa) return;
+
+    const allowed = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml"];
+    if (!allowed.includes(file.type)) {
+      toast.error("Formato inválido. Use PNG, JPG, WebP ou SVG.");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Arquivo muito grande (máx. 2 MB).");
+      return;
+    }
+
+    setUploadingLogo(true);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    const path = `${empresa.id}/logo-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("logos-empresas")
+      .upload(path, file, { upsert: true, contentType: file.type });
+
+    if (uploadError) {
+      setUploadingLogo(false);
+      toast.error(uploadError.message);
+      return;
+    }
+
+    const { data: pub } = supabase.storage.from("logos-empresas").getPublicUrl(path);
+    const publicUrl = pub.publicUrl;
+
+    const { error: updateError } = await supabase
+      .from("empresas")
+      .update({ logo_url: publicUrl })
+      .eq("id", empresa.id);
+
+    setUploadingLogo(false);
+    if (updateError) {
+      toast.error(updateError.message);
+      return;
+    }
+
+    setLogoUrl(publicUrl);
+    toast.success("Logo atualizada");
+    qc.invalidateQueries({ queryKey: ["current-empresa"] });
+  }
+
+  async function handleRemoveLogo() {
+    if (!empresa) return;
+    setUploadingLogo(true);
+    const { error } = await supabase
+      .from("empresas")
+      .update({ logo_url: null })
+      .eq("id", empresa.id);
+    setUploadingLogo(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setLogoUrl(null);
+    toast.success("Logo removida");
+    qc.invalidateQueries({ queryKey: ["current-empresa"] });
+  }
+
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
