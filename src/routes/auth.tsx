@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import logoAsset from "@/assets/os-facil-logo.png.asset.json";
+
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -103,7 +103,7 @@ function AuthPage() {
     <main className="min-h-screen flex flex-col items-center justify-center bg-background px-6 py-10">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-6">
-          <img src={logoAsset.url} alt="OS Fácil" className="w-24 h-24 object-contain" />
+          <img src="/logo.png" alt="OS Fácil" className="w-24 h-24 object-contain" />
           <h1 className="mt-3 text-2xl font-bold text-foreground">OS Fácil</h1>
           <p className="text-sm text-muted-foreground">Gestão de Ordens de Serviço</p>
         </div>

@@ -8,7 +8,7 @@ import { useCurrentUsuario } from "@/hooks/use-current-user";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import logoAsset from "@/assets/os-facil-logo.png.asset.json";
+
 
 export const Route = createFileRoute("/_authenticated/setup")({
   component: SetupPage,
@@ -84,7 +84,7 @@ function SetupPage() {
     <main className="min-h-screen flex flex-col items-center justify-center bg-background px-6 py-10">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-6">
-          <img src={logoAsset.url} alt="" className="w-20 h-20 object-contain" />
+          <img src="/logo.png" alt="" className="w-20 h-20 object-contain" />
           <h1 className="mt-3 text-2xl font-bold">Vamos configurar sua empresa</h1>
           <p className="text-sm text-muted-foreground text-center mt-1">
             Esses dados aparecerão nas suas ordens de serviço e faturas.

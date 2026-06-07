@@ -23,7 +23,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
-import logoAsset from "@/assets/os-facil-logo.png.asset.json";
+
 
 const items = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -46,7 +46,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <Link to="/dashboard" className="flex items-center gap-2 px-2 py-1">
-          <img src={logoAsset.url} alt="" className="w-8 h-8 object-contain shrink-0" />
+          <img src="/logo.png" alt="" className="w-8 h-8 object-contain shrink-0" />
           {!collapsed && (
             <span className="font-bold text-base text-foreground">OS Fácil</span>
           )}
