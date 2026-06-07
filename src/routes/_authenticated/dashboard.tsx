@@ -89,11 +89,11 @@ function DashboardPage() {
   const ordensData = useOS();
 
   const totalPago = (faturas.data ?? [])
-    .filter((f) => f.status === "paga")
+    .filter((f) => f.status === "pago")
     .reduce((s, f) => s + Number(f.total || 0), 0);
 
   const totalPendente = (faturas.data ?? [])
-    .filter((f) => f.status !== "paga")
+    .filter((f) => f.status !== "pago")
     .reduce((s, f) => s + Number(f.total || 0), 0);
 
   // Faturamento últimos 14 dias (por pago_em)
@@ -102,7 +102,7 @@ function DashboardPage() {
     return { d, label: format(d, "dd/MM", { locale: ptBR }), total: 0 };
   });
   (faturas.data ?? []).forEach((f) => {
-    if (f.status !== "paga" || !f.pago_em) return;
+    if (f.status !== "pago" || !f.pago_em) return;
     const day = startOfDay(new Date(f.pago_em)).getTime();
     const bucket = days.find((x) => x.d.getTime() === day);
     if (bucket) bucket.total += Number(f.total || 0);
