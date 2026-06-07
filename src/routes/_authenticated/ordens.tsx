@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
@@ -241,6 +241,7 @@ function ItemInput({ produtos, onAdd }: ItemInputProps) {
 // ─── Página principal ────────────────────────────────────────────────────────
 function OrdensPage() {
   const { data: usuario } = useCurrentUsuario();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
@@ -457,7 +458,7 @@ function OrdensPage() {
       qc.invalidateQueries({ queryKey: ["produtos-min"] });
       qc.invalidateQueries({ queryKey: ["produtos"] });
       setModalOpen(false);
-      window.location.href = `/ordens/${osData.id}`;
+      navigate({ to: "/ordens/$id", params: { id: osData.id } });
     } catch (err: any) {
       toast.error(err.message ?? "Erro ao criar OS");
     } finally {
@@ -537,7 +538,7 @@ function OrdensPage() {
             >
               <div
                 className="flex-1 min-w-0 flex items-center gap-3 cursor-pointer"
-                onClick={() => { window.location.href = `/ordens/${o.id}`; }}
+                onClick={() => navigate({ to: "/ordens/$id", params: { id: o.id } })}
               >
                 <div className="font-mono text-sm font-semibold w-16 shrink-0">
                   #{o.numero}

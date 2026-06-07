@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Trash2, Loader2, Save, History,
@@ -147,6 +147,7 @@ function ItemRow({ item, osId }: { item: Item; osId: string }) {
 // ── Página principal ─────────────────────────────────────────────────────────
 function OrdemDetailPage() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const qc = useQueryClient();
 
   const [editing, setEditing] = useState(false);
@@ -317,8 +318,8 @@ function OrdemDetailPage() {
     <AppShell title={`OS #${os.numero}`}>
       {/* Cabeçalho */}
       <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
-        <Button asChild variant="ghost" size="sm">
-          <Link to="/ordens"><ArrowLeft className="h-4 w-4 mr-1" /> Voltar</Link>
+        <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/ordens" })}>
+          <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
         </Button>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={() => setShareModal(true)}>
