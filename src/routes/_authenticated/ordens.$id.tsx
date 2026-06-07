@@ -195,7 +195,7 @@ function OrdemDetailPage() {
   const { data: itens = [] } = useQuery({
     queryKey: ["itens_os", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("itens_os").select("*").eq("os_id", id).order("created_at");
+      const { data, error } = await supabase.from("itens_os").select("*").eq("os_id", id);
       if (error) throw error;
       return data as Item[];
     },
