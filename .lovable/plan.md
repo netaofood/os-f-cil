@@ -1,28 +1,32 @@
-## Objetivo
-Permitir que o usuário faça upload da logo da empresa em **Configurações → Dados da empresa**, e usar essa logo automaticamente na página pública de OS e Faturas (e o cabeçalho da OS já a renderiza desde a última alteração).
+## Problema
 
-## Mudanças
+Ao compartilhar o link público da OS ou Fatura (ex.: WhatsApp), o preview mostra a logo do "OS Fácil/Netão Apps" (og:image global), e não a logo cadastrada da empresa. Isso acontece porque:
 
-### 1. Bucket de storage para logos
-Criar um bucket **público** chamado `logos-empresas` com políticas RLS em `storage.objects`:
-- **SELECT**: público (qualquer um pode visualizar a logo, já que ela aparece em links públicos de OS/Fatura).
-- **INSERT/UPDATE/DELETE**: apenas usuários autenticados, e apenas em arquivos dentro de uma pasta com o id da própria empresa (`<empresa_id>/...`).
+- As rotas públicas `os.$token.tsx` e `fatura.$token.tsx` estão com `ssr: false` e sem `head()`, então o crawler só lê o `og:image` global do `__root.tsx`.
+- A logo da empresa já é exibida dentro da página (depois que carrega no navegador), mas o crawler não executa JS.
 
-### 2. Tela de Configurações (`src/routes/_authenticated/configuracoes.tsx`)
-Adicionar um novo bloco "Logo da empresa" no card "Dados da empresa":
-- Mostrar a logo atual (se houver), com um placeholder cinza se vazio.
-- Botão **"Enviar logo"** que abre o seletor de arquivo (aceita PNG/JPG/SVG/WebP, máx. 2 MB).
-- Botão **"Remover logo"** quando já houver uma.
-- Ao selecionar arquivo: upload para `logos-empresas/<empresa_id>/logo.<ext>` com `upsert: true`, obter `publicUrl` e salvar em `empresas.logo_url`.
-- Toast de sucesso/erro; pré-visualização imediata.
+## Solução
 
-### 3. Página pública da Fatura (`src/routes/fatura.$token.tsx`)
-Espelhar o tratamento que já existe na página pública da OS: renderizar `empresa.logo_url` no cabeçalho (imagem pequena à esquerda do nome). Se não houver logo, mantém só o nome.
+Tornar as duas rotas públicas SSR-able e gerar metadados dinâmicos por token, apontando `og:image` (e `twitter:image`) para `empresa.logo_url`.
 
-## Detalhes técnicos
-- A coluna `empresas.logo_url` já existe — não precisa migrar schema.
-- O cabeçalho da OS pública (`os.$token.tsx`) já exibe `logo_url`, então passa a funcionar automaticamente assim que o usuário fizer upload.
-- Validação no client: tipo de arquivo e tamanho máximo 2 MB antes do upload.
+### Alterações
 
-## Itens fora do escopo
-- PDFs gerados / templates de e-mail (podem ser feitos depois, mas a `logo_url` ficará disponível para reuso).
+1. **`src/routes/os.$token.tsx`**
+   - Remover `ssr: false`.
+   - Adicionar `loader` que chama `getOSByToken({ data: { token } })` e devolve os dados para hidratação.
+   - Adicionar `head({ loaderData })` retornando:
+     - `title`: `Orçamento #<numero> — <empresa.nome>`
+     - `meta`: `description` curta, `og:title`, `og:description`, `og:type=website`, `og:image` = `empresa.logo_url` (quando existir), `twitter:card=summary_large_image`, `twitter:image` = `empresa.logo_url`.
+   - Componente passa a usar `Route.useLoaderData()` como `initialData` no `useQuery` (mantém o refetch após aprovar/rejeitar).
+
+2. **`src/routes/fatura.$token.tsx`**
+   - Mesma estrutura: remover `ssr: false`, adicionar `loader` chamando `getFaturaByToken`, e `head()` com `og:image` = `empresa.logo_url`, título `Fatura <numero> — <empresa.nome>`.
+
+3. **Fallback**
+   - Quando a empresa ainda não tem `logo_url`, omitir `og:image`/`twitter:image` da rota — assim a tag global do `__root.tsx` continua sendo usada (comportamento atual).
+
+### Observações técnicas
+
+- As funções `getOSByToken` e `getFaturaByToken` são server functions públicas (sem `requireSupabaseAuth`), então é seguro chamá-las no `loader` durante SSR/prerender.
+- Caches: crawlers (WhatsApp, Facebook) cacheiam previews. Depois do deploy, pode ser necessário forçar atualização (ex.: adicionar `?v=2` no link) para ver a logo nova.
+- Nenhuma mudança de banco, RLS ou lógica de negócio.
