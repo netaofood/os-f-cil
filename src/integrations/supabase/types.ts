@@ -350,6 +350,10 @@ export type Database = {
       }
       ordens_servico: {
         Row: {
+          aprovacao: string | null
+          aprovacao_em: string | null
+          aprovacao_obs: string | null
+          assinatura_url: string | null
           cliente_id: string | null
           created_at: string
           criado_por: string | null
@@ -357,6 +361,7 @@ export type Database = {
           empresa_id: string
           forma_pagamento: string | null
           id: string
+          link_publico_token: string | null
           numero: string
           observacoes: string | null
           status: string
@@ -364,6 +369,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aprovacao?: string | null
+          aprovacao_em?: string | null
+          aprovacao_obs?: string | null
+          assinatura_url?: string | null
           cliente_id?: string | null
           created_at?: string
           criado_por?: string | null
@@ -371,6 +380,7 @@ export type Database = {
           empresa_id: string
           forma_pagamento?: string | null
           id?: string
+          link_publico_token?: string | null
           numero: string
           observacoes?: string | null
           status?: string
@@ -378,6 +388,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aprovacao?: string | null
+          aprovacao_em?: string | null
+          aprovacao_obs?: string | null
+          assinatura_url?: string | null
           cliente_id?: string | null
           created_at?: string
           criado_por?: string | null
@@ -385,6 +399,7 @@ export type Database = {
           empresa_id?: string
           forma_pagamento?: string | null
           id?: string
+          link_publico_token?: string | null
           numero?: string
           observacoes?: string | null
           status?: string
