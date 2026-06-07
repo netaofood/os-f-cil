@@ -569,6 +569,7 @@ function OrdensPage() {
                     title="Aguardando resposta do cliente"
                   />
                 )}
+              </div>
               <Link
                 to="/ordens/$id"
                 params={{ id: o.id }}
