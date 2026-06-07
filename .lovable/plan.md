@@ -1,30 +1,28 @@
+## Objetivo
+Permitir que o usuário faça upload da logo da empresa em **Configurações → Dados da empresa**, e usar essa logo automaticamente na página pública de OS e Faturas (e o cabeçalho da OS já a renderiza desde a última alteração).
+
 ## Mudanças
 
-### 1. Mensagem padrão com nome do cliente + link
-**Arquivo:** `src/routes/_authenticated/ordens.$id.tsx`
+### 1. Bucket de storage para logos
+Criar um bucket **público** chamado `logos-empresas` com políticas RLS em `storage.objects`:
+- **SELECT**: público (qualquer um pode visualizar a logo, já que ela aparece em links públicos de OS/Fatura).
+- **INSERT/UPDATE/DELETE**: apenas usuários autenticados, e apenas em arquivos dentro de uma pasta com o id da própria empresa (`<empresa_id>/...`).
 
-Criar uma única mensagem reutilizada pelo botão "Copiar" e pelo WhatsApp:
+### 2. Tela de Configurações (`src/routes/_authenticated/configuracoes.tsx`)
+Adicionar um novo bloco "Logo da empresa" no card "Dados da empresa":
+- Mostrar a logo atual (se houver), com um placeholder cinza se vazio.
+- Botão **"Enviar logo"** que abre o seletor de arquivo (aceita PNG/JPG/SVG/WebP, máx. 2 MB).
+- Botão **"Remover logo"** quando já houver uma.
+- Ao selecionar arquivo: upload para `logos-empresas/<empresa_id>/logo.<ext>` com `upsert: true`, obter `publicUrl` e salvar em `empresas.logo_url`.
+- Toast de sucesso/erro; pré-visualização imediata.
 
-```
-Olá {nomeDoCliente || ""}, segue seu orçamento {publicUrl}
-```
-
-- O botão de copiar passa a copiar essa mensagem completa (texto + link), em vez de apenas o link.
-- O WhatsApp continua abrindo com a mesma mensagem.
-- Se a OS não tiver cliente, o nome fica vazio → `Olá , segue seu orçamento …`.
-- O `<Input>` no modal mostra a mensagem completa (readonly) para o usuário ver o que será enviado/copiado.
-
-### 2. Logo da empresa na página pública do orçamento
-**Arquivo:** `src/routes/os.$token.tsx`
-
-No cabeçalho da página pública (logo no topo, antes do nome da empresa), exibir `empresa.logo_url` quando existir:
-
-- Se `empresa.logo_url` estiver preenchido → mostra a imagem (altura fixa, ex.: 48–64px, com `object-contain`).
-- Se não houver logo → mantém só o nome (comportamento atual).
-
-Assim, ao abrir o link compartilhado, o cliente vê imediatamente a marca da empresa.
+### 3. Página pública da Fatura (`src/routes/fatura.$token.tsx`)
+Espelhar o tratamento que já existe na página pública da OS: renderizar `empresa.logo_url` no cabeçalho (imagem pequena à esquerda do nome). Se não houver logo, mantém só o nome.
 
 ## Detalhes técnicos
+- A coluna `empresas.logo_url` já existe — não precisa migrar schema.
+- O cabeçalho da OS pública (`os.$token.tsx`) já exibe `logo_url`, então passa a funcionar automaticamente assim que o usuário fizer upload.
+- Validação no client: tipo de arquivo e tamanho máximo 2 MB antes do upload.
 
-- A logo já é armazenada em `empresas.logo_url` e a query da página pública já retorna a empresa — basta renderizar o `<img>`.
-- Nenhum dado novo no banco, nenhuma alteração de schema.
+## Itens fora do escopo
+- PDFs gerados / templates de e-mail (podem ser feitos depois, mas a `logo_url` ficará disponível para reuso).
