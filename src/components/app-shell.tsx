@@ -1,5 +1,4 @@
 import { type ReactNode, useEffect } from "react";
-import { useNavigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -7,13 +6,12 @@ import { useCurrentUsuario } from "@/hooks/use-current-user";
 
 export function AppShell({ title, children }: { title: string; children: ReactNode }) {
   const { data: usuario, isLoading } = useCurrentUsuario();
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (!isLoading && usuario && !usuario.empresa_id) {
-      navigate({ to: "/setup" });
+      window.location.href = "/setup";
     }
-  }, [isLoading, usuario, navigate]);
+  }, [isLoading, usuario]);
 
   if (isLoading || !usuario) {
     return (
