@@ -1,28 +1,15 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
-  LayoutDashboard,
-  Users,
-  Package,
-  Settings,
-  LogOut,
-  FileText,
-  Calendar,
-  Receipt,
+  LayoutDashboard, Users, Package, Settings, LogOut,
+  FileText, Calendar, Receipt, ShieldCheck,
 } from "lucide-react";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
+  SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
+import { useCurrentUsuario } from "@/hooks/use-current-user";
 
 
 const items = [
@@ -41,6 +28,8 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + "/");
+  const { data: usuario } = useCurrentUsuario();
+  const isSuperAdmin = usuario?.perfil === "super_admin";
 
   return (
     <Sidebar collapsible="icon">
@@ -87,6 +76,25 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Menu Super Admin */}
+        {isSuperAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Super Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/admin")} tooltip="Painel Admin">
+                    <Link to="/admin" className="flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4" />
+                      {!collapsed && <span>Painel Admin</span>}
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
