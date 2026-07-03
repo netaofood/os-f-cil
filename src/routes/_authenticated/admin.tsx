@@ -2,9 +2,10 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Building2, Users, Plus, Pencil, Trash2, Loader2,
-  Save, X, ToggleLeft, ToggleRight,
-  MessageCircle, Copy, Check, RefreshCw, CreditCard,
+  Building2, Plus, Pencil, Trash2, Loader2,
+  Save, X, MessageCircle, Copy, Check,
+  RefreshCw, CreditCard, ChevronDown, ChevronRight,
+  ToggleLeft, ToggleRight, KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,36 +13,32 @@ import { AdminShell } from "@/components/admin-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Empresa = Tables<"empresas"> & {
-  status_pagamento?: string;
-  vencimento_plano?: string | null;
-  observacoes_pagamento?: string | null;
-  total_usuarios?: number;
-  total_os?: number;
+type Empresa = {
+  id: string; nome: string; cnpj: string | null; cidade: string | null;
+  estado: string | null; email: string | null; telefone: string | null;
+  cor_destaque: string; created_at: string; status_pagamento: string;
+  vencimento_plano: string | null; observacoes_pagamento: string | null;
+  total_usuarios: number; total_os: number;
 };
 type Usuario = Tables<"usuarios"> & { empresa_nome?: string };
 
-const statusPagamentoColor: Record<string, string> = {
+const statusColor: Record<string, string> = {
   ativa: "bg-green-500",
   inadimplente: "bg-yellow-500",
   cancelada: "bg-red-500",
 };
-
-const statusPagamentoLabel: Record<string, string> = {
-  ativa: "Ativa",
-  inadimplente: "Inadimplente",
-  cancelada: "Cancelada",
+const statusLabel: Record<string, string> = {
+  ativa: "Ativa", inadimplente: "Inadimplente", cancelada: "Cancelada",
 };
 
 function gerarSenha() {
@@ -52,12 +49,11 @@ function gerarSenha() {
 export default function AdminPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<"empresas" | "pagamentos">("empresas");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // ── EMPRESAS ──
-  const { data: empresas = [], isLoading: loadingEmpresas } = useQuery({
+  const { data: empresas = [], isLoading } = useQuery({
     queryKey: ["admin-empresas"],
-    enabled: true,
     queryFn: async (): Promise<Empresa[]> => {
       const { data, error } = await supabase.rpc("super_admin_empresas_resumo");
       if (error) throw error;
@@ -65,29 +61,40 @@ export default function AdminPage() {
     },
   });
 
-  // Modal empresa
+  const { data: admins = [] } = useQuery({
+    queryKey: ["admin-usuarios"],
+    queryFn: async (): Promise<Usuario[]> => {
+      const { data } = await supabase.from("usuarios").select("*").eq("perfil", "admin");
+      return (data ?? []) as Usuario[];
+    },
+  });
+
+  // Modal Empresa
   const [empresaModal, setEmpresaModal] = useState(false);
   const [editEmpresa, setEditEmpresa] = useState<Empresa | null>(null);
   const [savingEmpresa, setSavingEmpresa] = useState(false);
   const [deleteEmpresa, setDeleteEmpresa] = useState<Empresa | null>(null);
-  const [empresaForm, setEmpresaForm] = useState({
-    nome: "", cnpj: "", telefone: "", email: "", cidade: "", estado: "",
-  });
+  const [empresaForm, setEmpresaForm] = useState({ nome: "", cnpj: "", telefone: "", email: "", cidade: "", estado: "" });
 
-  // Modal admin da empresa
+  // Modal Admin
   const [adminModal, setAdminModal] = useState(false);
   const [adminEmpresa, setAdminEmpresa] = useState<Empresa | null>(null);
   const [adminForm, setAdminForm] = useState({ nome: "", celular: "", email: "", senha: "" });
   const [savingAdmin, setSavingAdmin] = useState(false);
   const [adminCriado, setAdminCriado] = useState<{ celular: string; senha: string; empresa: string } | null>(null);
 
-  // Modal pagamento
+  // Modal Pagamento
   const [pagamentoModal, setPagamentoModal] = useState(false);
   const [pagamentoEmpresa, setPagamentoEmpresa] = useState<Empresa | null>(null);
-  const [pagamentoForm, setPagamentoForm] = useState({
-    status_pagamento: "ativa", vencimento_plano: "", observacoes_pagamento: "",
-  });
+  const [pagamentoForm, setPagamentoForm] = useState({ status_pagamento: "ativa", vencimento_plano: "", observacoes_pagamento: "" });
   const [savingPagamento, setSavingPagamento] = useState(false);
+
+  // Modal Reset Senha
+  const [resetModal, setResetModal] = useState(false);
+  const [resetAdmin, setResetAdmin] = useState<Usuario | null>(null);
+  const [novaSenha, setNovaSenha] = useState("");
+  const [savingReset, setSavingReset] = useState(false);
+  const [resetCriado, setResetCriado] = useState(false);
 
   function openNovaEmpresa() {
     setEditEmpresa(null);
@@ -97,28 +104,8 @@ export default function AdminPage() {
 
   function openEditEmpresa(e: Empresa) {
     setEditEmpresa(e);
-    setEmpresaForm({
-      nome: e.nome, cnpj: e.cnpj ?? "", telefone: e.telefone ?? "",
-      email: e.email ?? "", cidade: e.cidade ?? "", estado: e.estado ?? "",
-    });
+    setEmpresaForm({ nome: e.nome, cnpj: e.cnpj ?? "", telefone: e.telefone ?? "", email: e.email ?? "", cidade: e.cidade ?? "", estado: e.estado ?? "" });
     setEmpresaModal(true);
-  }
-
-  function openAdminModal(e: Empresa) {
-    setAdminEmpresa(e);
-    setAdminCriado(null);
-    setAdminForm({ nome: "", celular: "", email: "", senha: gerarSenha() });
-    setAdminModal(true);
-  }
-
-  function openPagamentoModal(e: Empresa) {
-    setPagamentoEmpresa(e);
-    setPagamentoForm({
-      status_pagamento: e.status_pagamento ?? "ativa",
-      vencimento_plano: e.vencimento_plano ? e.vencimento_plano.slice(0, 10) : "",
-      observacoes_pagamento: e.observacoes_pagamento ?? "",
-    });
-    setPagamentoModal(true);
   }
 
   async function handleSaveEmpresa() {
@@ -144,11 +131,8 @@ export default function AdminPage() {
       }
       setEmpresaModal(false);
       qc.invalidateQueries({ queryKey: ["admin-empresas"] });
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setSavingEmpresa(false);
-    }
+    } catch (err: any) { toast.error(err.message); }
+    finally { setSavingEmpresa(false); }
   }
 
   async function handleDeleteEmpresa() {
@@ -159,6 +143,13 @@ export default function AdminPage() {
     setDeleteEmpresa(null);
   }
 
+  function openAdminModal(e: Empresa) {
+    setAdminEmpresa(e);
+    setAdminCriado(null);
+    setAdminForm({ nome: "", celular: "", email: "", senha: gerarSenha() });
+    setAdminModal(true);
+  }
+
   async function handleSaveAdmin() {
     if (!adminEmpresa) return;
     if (!adminForm.nome.trim() || !adminForm.celular.trim() || !adminForm.email.trim()) {
@@ -166,7 +157,6 @@ export default function AdminPage() {
     }
     setSavingAdmin(true);
     try {
-      // Cria usuário no Supabase Auth
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email: adminForm.email.trim().toLowerCase(),
         password: adminForm.senha,
@@ -175,25 +165,59 @@ export default function AdminPage() {
       if (authErr) throw authErr;
       if (!authData.user) throw new Error("Usuário não criado");
 
-      // Vincula à empresa e define como admin
-      await supabase.from("usuarios").update({
+      // Vincular empresa e confirmar
+      const { error: updErr } = await supabase.from("usuarios").update({
         empresa_id: adminEmpresa.id,
         perfil: "admin",
         celular: adminForm.celular,
         nome: adminForm.nome.trim(),
       }).eq("auth_user_id", authData.user.id);
+      if (updErr) throw updErr;
 
-      // Confirma email automaticamente via SQL
-      setAdminCriado({
-        celular: adminForm.celular,
-        senha: adminForm.senha,
-        empresa: adminEmpresa.nome,
-      });
+      setAdminCriado({ celular: adminForm.celular, senha: adminForm.senha, empresa: adminEmpresa.nome });
       qc.invalidateQueries({ queryKey: ["admin-empresas"] });
-    } catch (err: any) {
-      toast.error(err.message);
-    } finally {
-      setSavingAdmin(false);
+      qc.invalidateQueries({ queryKey: ["admin-usuarios"] });
+    } catch (err: any) { toast.error(err.message); }
+    finally { setSavingAdmin(false); }
+  }
+
+  function copiarAcesso(dados: { celular: string; senha: string; empresa: string }) {
+    const texto = `*OS Fácil — Dados de Acesso*\n\nEmpresa: ${dados.empresa}\nCelular: ${dados.celular}\nSenha: ${dados.senha}\n\nAcesse: https://os-facil-sepia.vercel.app`;
+    navigator.clipboard.writeText(texto);
+    setCopied(true);
+    toast.success("Dados copiados!");
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function enviarWhatsApp(dados: { celular: string; senha: string; empresa: string }) {
+    const texto = encodeURIComponent(`*OS Fácil — Dados de Acesso*\n\nEmpresa: ${dados.empresa}\nCelular: ${dados.celular}\nSenha: ${dados.senha}\n\nAcesse: https://os-facil-sepia.vercel.app`);
+    const numero = dados.celular.replace(/\D/g, "");
+    window.open(`https://wa.me/55${numero}?text=${texto}`, "_blank");
+  }
+
+  async function toggleAtivo(u: Usuario) {
+    const { error } = await supabase.from("usuarios").update({ ativo: !u.ativo }).eq("id", u.id);
+    if (error) toast.error(error.message);
+    else qc.invalidateQueries({ queryKey: ["admin-usuarios"] });
+  }
+
+  function openResetModal(u: Usuario) {
+    setResetAdmin(u);
+    setNovaSenha(gerarSenha());
+    setResetCriado(false);
+    setResetModal(true);
+  }
+
+  async function handleResetSenha() {
+    if (!resetAdmin) return;
+    setSavingReset(true);
+    // Envia email de reset (Supabase não permite alterar senha diretamente pelo cliente)
+    const { error } = await supabase.auth.resetPasswordForEmail(resetAdmin.email ?? "");
+    setSavingReset(false);
+    if (error) toast.error(error.message);
+    else {
+      setResetCriado(true);
+      toast.success("Email de reset enviado");
     }
   }
 
@@ -214,87 +238,125 @@ export default function AdminPage() {
     }
   }
 
-  function copiarAcesso() {
-    if (!adminCriado) return;
-    const texto = `*OS Fácil — Dados de Acesso*\n\nEmpresa: ${adminCriado.empresa}\nCelular: ${adminCriado.celular}\nSenha: ${adminCriado.senha}\n\nAcesse: https://os-facil-sepia.vercel.app`;
-    navigator.clipboard.writeText(texto);
-    setCopied(true);
-    toast.success("Dados copiados!");
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  function enviarWhatsApp() {
-    if (!adminCriado) return;
-    const texto = encodeURIComponent(`*OS Fácil — Dados de Acesso*\n\nEmpresa: ${adminCriado.empresa}\nCelular: ${adminCriado.celular}\nSenha: ${adminCriado.senha}\n\nAcesse: https://os-facil-sepia.vercel.app`);
-    const numero = adminCriado.celular.replace(/\D/g, "");
-    window.open(`https://wa.me/55${numero}?text=${texto}`, "_blank");
-  }
+  const adminsDaEmpresa = (empresaId: string) => admins.filter(a => a.empresa_id === empresaId);
 
   return (
-    <AdminShell title="Super Admin">
+    <AdminShell title="Painel Admin">
       {/* Tabs */}
-      <div className="flex gap-2 mb-6">
-        <Button variant={tab === "empresas" ? "default" : "outline"} onClick={() => setTab("empresas")} size="sm">
-          <Building2 className="h-4 w-4 mr-1" /> Empresas
-          <span className="ml-1.5 text-xs opacity-70">({empresas.length})</span>
-        </Button>
-        <Button variant={tab === "pagamentos" ? "default" : "outline"} onClick={() => setTab("pagamentos")} size="sm">
-          <CreditCard className="h-4 w-4 mr-1" /> Pagamentos
+      <div className="flex gap-2 mb-6 border-b border-border pb-3">
+        {[
+          { key: "empresas", label: "Empresas", icon: Building2 },
+          { key: "pagamentos", label: "Pagamentos", icon: CreditCard },
+        ].map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key as any)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all
+              ${tab === key
+                ? "bg-primary text-primary-foreground dark:shadow-[0_0_10px_#00B4FF66]"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+          >
+            <Icon className="h-4 w-4" />
+            {label}
+          </button>
+        ))}
+        <Button size="sm" className="ml-auto dark:shadow-[0_0_10px_#00B4FF44]" onClick={openNovaEmpresa}>
+          <Plus className="h-4 w-4 mr-1" /> Nova empresa
         </Button>
       </div>
 
       {/* ABA EMPRESAS */}
       {tab === "empresas" && (
         <>
-          <div className="flex justify-between items-center mb-3">
-            <p className="text-sm text-muted-foreground">{empresas.length} empresa(s) cadastrada(s)</p>
-            <Button size="sm" onClick={openNovaEmpresa}>
-              <Plus className="h-4 w-4 mr-1" /> Nova empresa
-            </Button>
-          </div>
-          {loadingEmpresas ? (
+          {isLoading ? (
             <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           ) : empresas.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground text-sm flex flex-col items-center gap-2">
-              <Building2 className="h-8 w-8 opacity-40" />
-              Nenhuma empresa cadastrada.
+            <div className="text-center py-12 text-muted-foreground flex flex-col items-center gap-2">
+              <Building2 className="h-10 w-10 opacity-30" />
+              <p>Nenhuma empresa cadastrada.</p>
             </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {empresas.map((e) => (
-                <Card key={e.id}>
-                  <CardContent className="pt-5">
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className="min-w-0">
-                        <p className="font-semibold truncate">{e.nome}</p>
-                        {(e.cidade || e.estado) && (
-                          <p className="text-xs text-muted-foreground">{[e.cidade, e.estado].filter(Boolean).join(" / ")}</p>
-                        )}
-                        {e.telefone && <p className="text-xs text-muted-foreground">{e.telefone}</p>}
-                        <span className={`inline-block mt-1 text-[10px] text-white px-2 py-0.5 rounded-full ${statusPagamentoColor[e.status_pagamento ?? "ativa"] ?? "bg-green-500"}`}>
-                          {statusPagamentoLabel[e.status_pagamento ?? "ativa"]}
+            <div className="space-y-2">
+              {empresas.map((e) => {
+                const expanded = expandedId === e.id;
+                const adminsEmpresa = adminsDaEmpresa(e.id);
+                return (
+                  <div key={e.id} className="border border-border rounded-lg overflow-hidden bg-card">
+                    {/* Header do accordion */}
+                    <button
+                      className="w-full flex items-center justify-between p-4 hover:bg-muted/40 transition-colors text-left"
+                      onClick={() => setExpandedId(expanded ? null : e.id)}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <ChevronRight className={`h-4 w-4 text-primary shrink-0 transition-transform ${expanded ? "rotate-90" : ""}`} />
+                        <div className="min-w-0">
+                          <p className="font-semibold truncate">{e.nome}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {[e.cidade, e.estado].filter(Boolean).join("/")} · {e.total_os} OSs · {e.total_usuarios} usuários
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        <span className={`text-[10px] text-white px-2 py-0.5 rounded-full ${statusColor[e.status_pagamento ?? "ativa"]}`}>
+                          {statusLabel[e.status_pagamento ?? "ativa"]}
                         </span>
                       </div>
-                      <div className="flex flex-col gap-1 shrink-0">
-                        <Button size="icon" variant="ghost" className="h-7 w-7" title="Editar empresa" onClick={() => openEditEmpresa(e)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" title="Excluir empresa" onClick={() => setDeleteEmpresa(e)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                    </button>
+
+                    {/* Conteúdo expandido */}
+                    {expanded && (
+                      <div className="border-t border-border p-4 space-y-4 bg-background/50">
+                        {/* Ações da empresa */}
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" variant="outline" onClick={() => openEditEmpresa(e)}>
+                            <Pencil className="h-3.5 w-3.5 mr-1" /> Editar empresa
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => { setPagamentoEmpresa(e); setPagamentoForm({ status_pagamento: e.status_pagamento ?? "ativa", vencimento_plano: e.vencimento_plano?.slice(0,10) ?? "", observacoes_pagamento: e.observacoes_pagamento ?? "" }); setPagamentoModal(true); }}>
+                            <CreditCard className="h-3.5 w-3.5 mr-1" /> Pagamento
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-primary border-primary/50" onClick={() => openAdminModal(e)}>
+                            <Plus className="h-3.5 w-3.5 mr-1" /> Criar admin
+                          </Button>
+                          <Button size="sm" variant="outline" className="text-destructive border-destructive/50 ml-auto" onClick={() => setDeleteEmpresa(e)}>
+                            <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
+                          </Button>
+                        </div>
+
+                        {/* Lista de admins */}
+                        {adminsEmpresa.length > 0 && (
+                          <div>
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Administradores</p>
+                            <div className="space-y-2">
+                              {adminsEmpresa.map((a) => (
+                                <div key={a.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm truncate">{a.nome}</p>
+                                    <p className="text-xs text-muted-foreground">{a.celular}</p>
+                                  </div>
+                                  <div className="flex gap-1 shrink-0">
+                                    <Button size="icon" variant="ghost" className="h-8 w-8" title="Reset senha" onClick={() => openResetModal(a)}>
+                                      <KeyRound className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button
+                                      size="icon" variant="ghost"
+                                      className={`h-8 w-8 ${a.ativo ? "text-green-500" : "text-muted-foreground"}`}
+                                      title={a.ativo ? "Desativar" : "Ativar"}
+                                      onClick={() => toggleAtivo(a)}
+                                    >
+                                      {a.ativo ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                    <div className="flex gap-2 flex-wrap">
-                      <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => openAdminModal(e)}>
-                        <Users className="h-3.5 w-3.5 mr-1" /> Admin
-                      </Button>
-                      <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => openPagamentoModal(e)}>
-                        <CreditCard className="h-3.5 w-3.5 mr-1" /> Pagamento
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </>
@@ -302,14 +364,14 @@ export default function AdminPage() {
 
       {/* ABA PAGAMENTOS */}
       {tab === "pagamentos" && (
-        <div className="grid gap-2">
+        <div className="space-y-2">
           {empresas.map((e) => (
-            <div key={e.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3">
+            <div key={e.id} className="flex items-center justify-between gap-3 p-4 rounded-lg border border-border bg-card">
               <div className="min-w-0 flex-1">
-                <p className="font-medium text-sm">{e.nome}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className={`text-[10px] text-white px-2 py-0.5 rounded-full ${statusPagamentoColor[e.status_pagamento ?? "ativa"]}`}>
-                    {statusPagamentoLabel[e.status_pagamento ?? "ativa"]}
+                <p className="font-semibold text-sm">{e.nome}</p>
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <span className={`text-[10px] text-white px-2 py-0.5 rounded-full ${statusColor[e.status_pagamento ?? "ativa"]}`}>
+                    {statusLabel[e.status_pagamento ?? "ativa"]}
                   </span>
                   {e.vencimento_plano && (
                     <span className="text-xs text-muted-foreground">
@@ -318,7 +380,11 @@ export default function AdminPage() {
                   )}
                 </div>
               </div>
-              <Button size="sm" variant="outline" onClick={() => openPagamentoModal(e)}>
+              <Button size="sm" variant="outline" onClick={() => {
+                setPagamentoEmpresa(e);
+                setPagamentoForm({ status_pagamento: e.status_pagamento ?? "ativa", vencimento_plano: e.vencimento_plano?.slice(0,10) ?? "", observacoes_pagamento: e.observacoes_pagamento ?? "" });
+                setPagamentoModal(true);
+              }}>
                 <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
               </Button>
             </div>
@@ -330,7 +396,9 @@ export default function AdminPage() {
       <Dialog open={empresaModal} onOpenChange={(o) => !savingEmpresa && setEmpresaModal(o)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editEmpresa ? "Editar empresa" : "Nova empresa"}</DialogTitle>
+            <DialogTitle style={{ fontFamily: "Orbitron, sans-serif" }}>
+              {editEmpresa ? "Editar empresa" : "Nova empresa"}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div className="space-y-1.5">
@@ -378,7 +446,9 @@ export default function AdminPage() {
       <Dialog open={adminModal} onOpenChange={(o) => !savingAdmin && setAdminModal(o)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Admin — {adminEmpresa?.nome}</DialogTitle>
+            <DialogTitle style={{ fontFamily: "Orbitron, sans-serif" }}>
+              Admin — {adminEmpresa?.nome}
+            </DialogTitle>
           </DialogHeader>
           {!adminCriado ? (
             <>
@@ -408,24 +478,24 @@ export default function AdminPage() {
               <DialogFooter>
                 <Button variant="outline" onClick={() => setAdminModal(false)} disabled={savingAdmin}>Cancelar</Button>
                 <Button onClick={handleSaveAdmin} disabled={savingAdmin}>
-                  {savingAdmin ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Users className="h-4 w-4 mr-1" />}
+                  {savingAdmin ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
                   Criar admin
                 </Button>
               </DialogFooter>
             </>
           ) : (
             <div className="space-y-4 py-2">
-              <div className="rounded-lg bg-muted p-4 text-sm space-y-1">
+              <div className="rounded-lg bg-muted p-4 text-sm space-y-1 font-mono">
                 <p><strong>Empresa:</strong> {adminCriado.empresa}</p>
                 <p><strong>Celular:</strong> {adminCriado.celular}</p>
                 <p><strong>Senha:</strong> {adminCriado.senha}</p>
-                <p className="text-xs text-muted-foreground mt-2">Acesse: https://os-facil-sepia.vercel.app</p>
+                <p className="text-xs text-muted-foreground mt-2">https://os-facil-sepia.vercel.app</p>
               </div>
               <div className="flex gap-2">
-                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={enviarWhatsApp}>
+                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => enviarWhatsApp(adminCriado)}>
                   <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
                 </Button>
-                <Button variant="outline" className="flex-1" onClick={copiarAcesso}>
+                <Button variant="outline" className="flex-1" onClick={() => copiarAcesso(adminCriado)}>
                   {copied ? <Check className="h-4 w-4 mr-1 text-green-500" /> : <Copy className="h-4 w-4 mr-1" />}
                   Copiar
                 </Button>
@@ -436,11 +506,41 @@ export default function AdminPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Modal Reset Senha */}
+      <Dialog open={resetModal} onOpenChange={(o) => !savingReset && setResetModal(o)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: "Orbitron, sans-serif" }}>Reset de senha</DialogTitle>
+          </DialogHeader>
+          {!resetCriado ? (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Será enviado um email de redefinição de senha para <strong>{resetAdmin?.email}</strong>.
+              </p>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setResetModal(false)} disabled={savingReset}>Cancelar</Button>
+                <Button onClick={handleResetSenha} disabled={savingReset}>
+                  {savingReset ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <KeyRound className="h-4 w-4 mr-1" />}
+                  Enviar reset
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-green-600 font-medium">Email de reset enviado com sucesso!</p>
+              <Button variant="ghost" className="w-full" onClick={() => setResetModal(false)}>Fechar</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Modal Pagamento */}
       <Dialog open={pagamentoModal} onOpenChange={(o) => !savingPagamento && setPagamentoModal(o)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Pagamento — {pagamentoEmpresa?.nome}</DialogTitle>
+            <DialogTitle style={{ fontFamily: "Orbitron, sans-serif" }}>
+              Pagamento — {pagamentoEmpresa?.nome}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div className="space-y-1.5">
@@ -460,7 +560,7 @@ export default function AdminPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Observações</Label>
-              <Textarea value={pagamentoForm.observacoes_pagamento} onChange={(e) => setPagamentoForm({ ...pagamentoForm, observacoes_pagamento: e.target.value })} rows={3} placeholder="Notas sobre o pagamento..." />
+              <Textarea value={pagamentoForm.observacoes_pagamento} onChange={(e) => setPagamentoForm({ ...pagamentoForm, observacoes_pagamento: e.target.value })} rows={3} />
             </div>
           </div>
           <DialogFooter>
@@ -479,7 +579,7 @@ export default function AdminPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remover "{deleteEmpresa?.nome}"?</AlertDialogTitle>
             <AlertDialogDescription>
-              Todos os dados da empresa serão removidos permanentemente.
+              Todos os dados serão removidos permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
