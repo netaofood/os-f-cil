@@ -8,7 +8,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
   const { data: usuario, isLoading } = useCurrentUsuario();
 
   useEffect(() => {
-    if (!isLoading && usuario && !usuario.empresa_id) {
+    if (!isLoading && usuario && !usuario.empresa_id && usuario.perfil !== 'super_admin') {
       window.location.href = "/setup";
     }
   }, [isLoading, usuario]);
@@ -21,7 +21,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
     );
   }
 
-  if (!usuario.empresa_id) {
+  if (!usuario.empresa_id && usuario.perfil !== 'super_admin') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
