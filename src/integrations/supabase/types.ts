@@ -129,6 +129,9 @@ export type Database = {
           logo_url: string | null
           nome: string
           pix: string | null
+          status_pagamento: string
+          vencimento_plano: string | null
+          observacoes_pagamento: string | null
           telefone: string | null
         }
         Insert: {
@@ -144,6 +147,9 @@ export type Database = {
           logo_url?: string | null
           nome: string
           pix?: string | null
+          status_pagamento?: string
+          vencimento_plano?: string | null
+          observacoes_pagamento?: string | null
           telefone?: string | null
         }
         Update: {
@@ -159,6 +165,9 @@ export type Database = {
           logo_url?: string | null
           nome?: string
           pix?: string | null
+          status_pagamento?: string
+          vencimento_plano?: string | null
+          observacoes_pagamento?: string | null
           telefone?: string | null
         }
         Relationships: []
@@ -560,11 +569,34 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["perfil_usuario"]
       }
+      get_email_by_celular: {
+        Args: { _celular: string }
+        Returns: string
+      }
       is_admin_or_super: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       next_fatura_numero: { Args: { _empresa_id: string }; Returns: string }
       next_os_numero: { Args: { _empresa_id: string }; Returns: string }
       same_empresa: { Args: { _empresa_id: string }; Returns: boolean }
+      super_admin_empresas_resumo: {
+        Args: Record<PropertyKey, never>
+        Returns: Array<{
+          id: string
+          nome: string
+          cnpj: string | null
+          cidade: string | null
+          estado: string | null
+          email: string | null
+          telefone: string | null
+          cor_destaque: string
+          created_at: string
+          status_pagamento: string
+          vencimento_plano: string | null
+          observacoes_pagamento: string | null
+          total_usuarios: number
+          total_os: number
+        }>
+      }
     }
     Enums: {
       perfil_usuario: "super_admin" | "admin" | "colaborador"
