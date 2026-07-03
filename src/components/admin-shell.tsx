@@ -1,16 +1,23 @@
 import { type ReactNode, useState, useEffect } from "react";
 import { ShieldCheck, LogOut } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
 export function AdminShell({ title, children }: { title: string; children: ReactNode }) {
   const [nome, setNome] = useState("Super Admin");
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      const n = data.session?.user?.user_metadata?.nome;
+      if (!data.session) {
+        window.location.href = "/auth";
+        return;
+      }
+      const n = data.session.user?.user_metadata?.nome;
       if (n) setNome(n);
+      setChecking(false);
     });
   }, []);
 
@@ -18,6 +25,14 @@ export function AdminShell({ title, children }: { title: string; children: React
     await supabase.auth.signOut();
     toast.success("Até logo!");
     window.location.href = "/auth";
+  }
+
+  if (checking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
