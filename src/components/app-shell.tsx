@@ -1,24 +1,33 @@
-import { type ReactNode, useEffect } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUsuario } from "@/hooks/use-current-user";
 
 export function AppShell({ title, children }: { title: string; children: ReactNode }) {
+  const [checking, setChecking] = useState(true);
   const { data: usuario, isLoading } = useCurrentUsuario();
 
   useEffect(() => {
-    if (isLoading || !usuario) return;
-    if (!usuario.empresa_id) {
-      if (usuario.perfil === 'super_admin') {
-        window.location.href = "/admin";
-      } else {
-        window.location.href = "/setup";
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        window.location.href = "/auth";
+        return;
       }
-    }
-  }, [isLoading, usuario]);
+      setChecking(false);
+    });
+  }, []);
 
-  if (isLoading || !usuario) {
+  useEffect(() => {
+    if (isLoading || checking) return;
+    if (!usuario) return;
+    if (!usuario.empresa_id && usuario.perfil !== "super_admin") {
+      window.location.href = "/setup";
+    }
+  }, [isLoading, checking, usuario]);
+
+  if (checking || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -26,7 +35,7 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
     );
   }
 
-  if (!usuario.empresa_id && usuario.perfil !== 'super_admin') {
+  if (!usuario) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -49,3 +58,4 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
     </SidebarProvider>
   );
 }
+
