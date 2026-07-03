@@ -62,7 +62,23 @@ function AuthPage() {
         return;
       }
 
-      window.location.href = "/";
+      // Busca o perfil do usuário para redirecionar corretamente
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session) {
+        const { data: usuarioData } = await supabase
+          .from("usuarios")
+          .select("perfil")
+          .eq("auth_user_id", sessionData.session.user.id)
+          .maybeSingle();
+
+        if (usuarioData?.perfil === "super_admin") {
+          window.location.href = "/admin";
+        } else {
+          window.location.href = "/dashboard";
+        }
+      } else {
+        window.location.href = "/dashboard";
+      }
     } catch (err: any) {
       toast.error("Erro ao fazer login");
     } finally {
