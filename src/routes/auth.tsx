@@ -51,7 +51,8 @@ function AuthPage() {
         emailParaLogin = emailData;
       }
 
-      const { error } = await supabase.auth.signInWithPassword({
+      // Usa o resultado do signIn direto — não precisa de getSession separado
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({
         email: emailParaLogin,
         password: senha,
       });
@@ -62,13 +63,11 @@ function AuthPage() {
         return;
       }
 
-      // Busca o perfil do usuário para redirecionar corretamente
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData.session) {
+      if (signInData.user) {
         const { data: usuarioData } = await supabase
           .from("usuarios")
           .select("perfil")
-          .eq("auth_user_id", sessionData.session.user.id)
+          .eq("auth_user_id", signInData.user.id)
           .maybeSingle();
 
         if (usuarioData?.perfil === "super_admin") {
