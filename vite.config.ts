@@ -21,7 +21,6 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       tanstackStart({
         server: { entry: "server" },
-        ssr: false,
         importProtection: {
           behavior: "error",
           client: {
