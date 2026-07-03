@@ -1,13 +1,15 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
 import { supabase } from "@/integrations/supabase/client";
+import { AppHeader } from "@/components/app-header";
+import { BottomNav } from "@/components/bottom-nav";
 
 export function AppShell({ title, children }: { title: string; children: ReactNode }) {
   const [ready, setReady] = useState(false);
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
+    // Verificar sessão
     supabase.auth.getSession().then(({ data }) => {
       if (!data.session) {
         window.location.href = "/auth";
@@ -15,7 +17,26 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
       }
       setReady(true);
     });
+
+    // Carregar preferência de tema
+    const saved = localStorage.getItem("theme");
+    if (saved === "dark" || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+      document.documentElement.classList.add("dark");
+      setIsDark(true);
+    }
   }, []);
+
+  function toggleTheme() {
+    const next = !isDark;
+    setIsDark(next);
+    if (next) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }
 
   if (!ready) {
     return (
@@ -26,17 +47,12 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-3 border-b border-border px-4 sticky top-0 bg-background z-10">
-            <SidebarTrigger />
-            <h1 className="font-semibold text-foreground truncate">{title}</h1>
-          </header>
-          <main className="flex-1 p-4 md:p-6 overflow-x-hidden">{children}</main>
-        </div>
-      </div>
-    </SidebarProvider>
+    <div className="min-h-screen flex flex-col bg-background">
+      <AppHeader onToggleTheme={toggleTheme} isDark={isDark} />
+      <main className="flex-1 p-4 pb-20 overflow-x-hidden">
+        {children}
+      </main>
+      <BottomNav />
+    </div>
   );
 }
