@@ -198,7 +198,11 @@ export default function AdminPage() {
   async function toggleAtivo(u: Usuario) {
     const { error } = await supabase.from("usuarios").update({ ativo: !u.ativo }).eq("id", u.id);
     if (error) toast.error(error.message);
-    else qc.invalidateQueries({ queryKey: ["admin-usuarios"] });
+    else {
+      toast.success(u.ativo ? "Usuário desativado" : "Usuário ativado");
+      await qc.invalidateQueries({ queryKey: ["admin-usuarios"] });
+      await qc.refetchQueries({ queryKey: ["admin-usuarios"] });
+    }
   }
 
   function openResetModal(u: Usuario) {
