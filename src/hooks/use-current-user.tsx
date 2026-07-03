@@ -9,12 +9,12 @@ export function useCurrentUsuario() {
   return useQuery({
     queryKey: ["current-usuario"],
     queryFn: async (): Promise<Usuario | null> => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return null;
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session?.user) return null;
       const { data, error } = await supabase
         .from("usuarios")
         .select("*")
-        .eq("auth_user_id", auth.user.id)
+        .eq("auth_user_id", sessionData.session.user.id)
         .maybeSingle();
       if (error) throw error;
       return data;

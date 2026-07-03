@@ -20,10 +20,18 @@ function Index() {
     }
     if (usuario?.perfil === "super_admin") {
       window.location.href = "/admin";
-    } else {
+    } else if (usuario) {
       window.location.href = "/dashboard";
     }
   }, [loading, loadingUsuario, user, usuario]);
+
+  // Timeout de segurança — se demorar mais de 5s, vai para /auth
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!user) window.location.href = "/auth";
+    }, 5000);
+    return () => clearTimeout(t);
+  }, [user]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">

@@ -3,13 +3,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Building2, Users, Plus, Pencil, Trash2, Loader2,
-  ShieldAlert, Save, X, ToggleLeft, ToggleRight,
+  Save, X, ToggleLeft, ToggleRight,
   MessageCircle, Copy, Check, RefreshCw, CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useCurrentUsuario } from "@/hooks/use-current-user";
-import { AppShell } from "@/components/app-shell";
+import { AdminShell } from "@/components/admin-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,26 +50,14 @@ function gerarSenha() {
 }
 
 export default function AdminPage() {
-  const { data: usuario } = useCurrentUsuario();
   const qc = useQueryClient();
   const [tab, setTab] = useState<"empresas" | "pagamentos">("empresas");
   const [copied, setCopied] = useState(false);
 
-  if (usuario && usuario.perfil !== "super_admin") {
-    return (
-      <AppShell title="Admin">
-        <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
-          <ShieldAlert className="h-10 w-10" />
-          <p>Acesso restrito a super administradores.</p>
-        </div>
-      </AppShell>
-    );
-  }
-
   // ── EMPRESAS ──
   const { data: empresas = [], isLoading: loadingEmpresas } = useQuery({
     queryKey: ["admin-empresas"],
-    enabled: usuario?.perfil === "super_admin",
+    enabled: true,
     queryFn: async (): Promise<Empresa[]> => {
       const { data, error } = await supabase.rpc("super_admin_empresas_resumo");
       if (error) throw error;
@@ -244,7 +231,7 @@ export default function AdminPage() {
   }
 
   return (
-    <AppShell title="Super Admin">
+    <AdminShell title="Super Admin">
       {/* Tabs */}
       <div className="flex gap-2 mb-6">
         <Button variant={tab === "empresas" ? "default" : "outline"} onClick={() => setTab("empresas")} size="sm">
@@ -503,6 +490,6 @@ export default function AdminPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </AppShell>
+    </AdminShell>
   );
 }
