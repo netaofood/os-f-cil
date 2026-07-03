@@ -2,9 +2,6 @@
 @source "../src";
 @import "tw-animate-css";
 
-/* Fontes */
-@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
-
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -115,15 +112,15 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family: "Inter", sans-serif;
+    font-family: "Inter", system-ui, sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: "Orbitron", sans-serif;
+    font-family: "Orbitron", "Inter", sans-serif;
   }
 
-  .font-mono, [class*="tabular-nums"], .mono {
-    font-family: "JetBrains Mono", monospace;
+  code, kbd, pre, .font-mono, [class*="tabular-nums"] {
+    font-family: "JetBrains Mono", "Courier New", monospace;
   }
 }
 
