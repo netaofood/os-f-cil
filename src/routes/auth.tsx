@@ -51,7 +51,6 @@ function AuthPage() {
         emailParaLogin = emailData;
       }
 
-      // Usa o resultado do signIn direto — não precisa de getSession separado
       const { data: signInData, error } = await supabase.auth.signInWithPassword({
         email: emailParaLogin,
         password: senha,
@@ -63,18 +62,9 @@ function AuthPage() {
         return;
       }
 
-      if (signInData.user) {
-        const { data: usuarioData } = await supabase
-          .from("usuarios")
-          .select("perfil")
-          .eq("auth_user_id", signInData.user.id)
-          .maybeSingle();
-
-        if (usuarioData?.perfil === "super_admin") {
-          window.location.href = "/admin";
-        } else {
-          window.location.href = "/dashboard";
-        }
+      // Super admin é identificado pelo email
+      if (emailParaLogin === "netaosushibar@gmail.com") {
+        window.location.href = "/admin";
       } else {
         window.location.href = "/dashboard";
       }
