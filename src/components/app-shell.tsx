@@ -8,8 +8,13 @@ export function AppShell({ title, children }: { title: string; children: ReactNo
   const { data: usuario, isLoading } = useCurrentUsuario();
 
   useEffect(() => {
-    if (!isLoading && usuario && !usuario.empresa_id && usuario.perfil !== 'super_admin') {
-      window.location.href = "/setup";
+    if (isLoading || !usuario) return;
+    if (!usuario.empresa_id) {
+      if (usuario.perfil === 'super_admin') {
+        window.location.href = "/admin";
+      } else {
+        window.location.href = "/setup";
+      }
     }
   }, [isLoading, usuario]);
 
