@@ -17,40 +17,42 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-function formatCelular(value: string) {
-  const digits = value.replace(/\D/g, "").slice(0, 11);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 7) return `(${digits.slice(0,2)}) ${digits.slice(2)}`;
-  return `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`;
+function isEmail(v: string) {
+  return /\S+@\S+\.\S+/.test(v);
 }
 
 function AuthPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [celular, setCelular] = useState("");
+  const [identificacao, setIdentificacao] = useState("");
   const [senha, setSenha] = useState("");
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!celular || !senha) {
-      toast.error("Informe o celular e a senha");
+    if (!identificacao.trim() || !senha) {
+      toast.error("Informe o email ou celular e a senha");
       return;
     }
     setLoading(true);
     try {
-      // Busca o email cadastrado para esse celular
-      const digits = celular.replace(/\D/g, "");
-      const { data: emailData, error: emailErr } = await supabase
-        .rpc("get_email_by_celular", { _celular: digits });
+      let emailParaLogin = identificacao.trim().toLowerCase();
 
-      if (emailErr || !emailData) {
-        toast.error("Celular não encontrado");
-        setLoading(false);
-        return;
+      // Se não for email, busca pelo celular
+      if (!isEmail(identificacao)) {
+        const digits = identificacao.replace(/\D/g, "");
+        const { data: emailData, error: emailErr } = await supabase
+          .rpc("get_email_by_celular", { _celular: digits });
+
+        if (emailErr || !emailData) {
+          toast.error("Celular não encontrado");
+          setLoading(false);
+          return;
+        }
+        emailParaLogin = emailData;
       }
 
       const { error } = await supabase.auth.signInWithPassword({
-        email: emailData,
+        email: emailParaLogin,
         password: senha,
       });
 
@@ -79,14 +81,13 @@ function AuthPage() {
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="celular">Celular</Label>
+            <Label htmlFor="identificacao">E-mail ou celular</Label>
             <Input
-              id="celular"
-              type="tel"
-              value={celular}
-              onChange={(e) => setCelular(formatCelular(e.target.value))}
-              placeholder="(00) 00000-0000"
-              autoComplete="tel"
+              id="identificacao"
+              value={identificacao}
+              onChange={(e) => setIdentificacao(e.target.value)}
+              placeholder="voce@exemplo.com ou (00) 00000-0000"
+              autoComplete="username"
               required
             />
           </div>
