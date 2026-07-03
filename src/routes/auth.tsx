@@ -8,12 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({
-    meta: [
-      { title: "Entrar — OS Fácil" },
-      { name: "description", content: "Acesse sua conta OS Fácil." },
-    ],
-  }),
   component: AuthPage,
 });
 
@@ -29,47 +23,48 @@ function AuthPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!identificacao.trim() || !senha) {
-      toast.error("Informe o email ou celular e a senha");
-      return;
-    }
     setLoading(true);
+
     try {
       let emailParaLogin = identificacao.trim().toLowerCase();
 
-      // Se não for email, busca pelo celular
       if (!isEmail(identificacao)) {
         const digits = identificacao.replace(/\D/g, "");
-        const { data: emailData, error: emailErr } = await supabase
-          .rpc("get_email_by_celular", { _celular: digits });
-
-        if (emailErr || !emailData) {
+        const { data, error } = await supabase.rpc("get_email_by_celular", { _celular: digits });
+        if (error || !data) {
           toast.error("Celular não encontrado");
           setLoading(false);
           return;
         }
-        emailParaLogin = emailData;
+        emailParaLogin = data;
       }
 
-      const { data: signInData, error } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: emailParaLogin,
         password: senha,
       });
 
-      if (error) {
-        toast.error("Login falhou", { description: error.message });
+      if (signInError || !signInData.user) {
+        toast.error("Login falhou", { description: signInError?.message });
         setLoading(false);
         return;
       }
 
-      // Super admin é identificado pelo email
-      if (emailParaLogin === "netaosushibar@gmail.com") {
+      // Busca perfil direto com o token já ativo
+      const { data: u } = await supabase
+        .from("usuarios")
+        .select("perfil")
+        .eq("auth_user_id", signInData.user.id)
+        .maybeSingle();
+
+      if (u?.perfil === "super_admin") {
         window.location.href = "/admin";
       } else {
         window.location.href = "/dashboard";
       }
-    } catch (err: any) {
-      toast.error("Erro ao fazer login");
+
+    } catch {
+      toast.error("Erro inesperado");
     } finally {
       setLoading(false);
     }
@@ -83,16 +78,14 @@ function AuthPage() {
           <h1 className="mt-3 text-2xl font-bold text-foreground">OS Fácil</h1>
           <p className="text-sm text-muted-foreground">Gestão de Ordens de Serviço</p>
         </div>
-
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="identificacao">E-mail ou celular</Label>
+            <Label htmlFor="id">E-mail ou celular</Label>
             <Input
-              id="identificacao"
+              id="id"
               value={identificacao}
               onChange={(e) => setIdentificacao(e.target.value)}
               placeholder="voce@exemplo.com ou (00) 00000-0000"
-              autoComplete="username"
               required
             />
           </div>
@@ -104,7 +97,6 @@ function AuthPage() {
                 type={showPw ? "text" : "password"}
                 value={senha}
                 onChange={(e) => setSenha(e.target.value)}
-                autoComplete="current-password"
                 required
               />
               <button
@@ -121,9 +113,8 @@ function AuthPage() {
             Entrar
           </Button>
         </form>
-
         <p className="text-xs text-muted-foreground text-center mt-6">
-          Problemas para acessar? Entre em contato com o administrador.
+          Problemas? Entre em contato com o administrador.
         </p>
       </div>
     </main>
