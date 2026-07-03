@@ -79,7 +79,7 @@ export default function AdminPage() {
   // Modal Admin
   const [adminModal, setAdminModal] = useState(false);
   const [adminEmpresa, setAdminEmpresa] = useState<Empresa | null>(null);
-  const [adminForm, setAdminForm] = useState({ nome: "", celular: "", email: "", senha: "" });
+  const [adminForm, setAdminForm] = useState({ nome: "", celular: "", senha: "" });
   const [savingAdmin, setSavingAdmin] = useState(false);
   const [adminCriado, setAdminCriado] = useState<{ celular: string; senha: string; empresa: string } | null>(null);
 
@@ -146,26 +146,32 @@ export default function AdminPage() {
   function openAdminModal(e: Empresa) {
     setAdminEmpresa(e);
     setAdminCriado(null);
-    setAdminForm({ nome: "", celular: "", email: "", senha: gerarSenha() });
+    setAdminForm({ nome: "", celular: "", senha: gerarSenha() });
     setAdminModal(true);
   }
 
   async function handleSaveAdmin() {
     if (!adminEmpresa) return;
-    if (!adminForm.nome.trim() || !adminForm.celular.trim() || !adminForm.email.trim()) {
-      toast.error("Nome, celular e email são obrigatórios"); return;
+    if (!adminForm.nome.trim() || !adminForm.celular.trim()) {
+      toast.error("Nome e celular são obrigatórios"); return;
     }
     setSavingAdmin(true);
     try {
+      // Email fake baseado no celular
+      const digits = adminForm.celular.replace(/\D/g, "");
+      const emailFake = `${digits}@osfacil.app`;
+
       const { data: authData, error: authErr } = await supabase.auth.signUp({
-        email: adminForm.email.trim().toLowerCase(),
+        email: emailFake,
         password: adminForm.senha,
         options: { data: { nome: adminForm.nome.trim(), celular: adminForm.celular } },
       });
       if (authErr) throw authErr;
       if (!authData.user) throw new Error("Usuário não criado");
 
-      // Vincular empresa e confirmar
+      // Aguarda trigger criar registro em usuarios
+      await new Promise(r => setTimeout(r, 800));
+
       const { error: updErr } = await supabase.from("usuarios").update({
         empresa_id: adminEmpresa.id,
         perfil: "admin",
@@ -173,6 +179,9 @@ export default function AdminPage() {
         nome: adminForm.nome.trim(),
       }).eq("auth_user_id", authData.user.id);
       if (updErr) throw updErr;
+
+      // Confirma email fake automaticamente via SQL
+      await supabase.rpc("confirmar_usuario_por_email" as any, { p_email: emailFake });
 
       setAdminCriado({ celular: adminForm.celular, senha: adminForm.senha, empresa: adminEmpresa.nome });
       qc.invalidateQueries({ queryKey: ["admin-empresas"] });
@@ -464,10 +473,6 @@ export default function AdminPage() {
                 <div className="space-y-1.5">
                   <Label>Celular *</Label>
                   <Input value={adminForm.celular} onChange={(e) => setAdminForm({ ...adminForm, celular: e.target.value })} placeholder="(00) 00000-0000" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>E-mail *</Label>
-                  <Input type="email" value={adminForm.email} onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })} />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Senha provisória</Label>

@@ -46,36 +46,40 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      let emailParaLogin = identificacao.trim().toLowerCase();
-      if (!isEmail(identificacao)) {
+      let emailParaLogin: string;
+
+      if (isEmail(identificacao)) {
+        // Super admin usa email real
+        emailParaLogin = identificacao.trim().toLowerCase();
+      } else {
+        // Admin/colaborador: celular vira email fake
         const digits = identificacao.replace(/\D/g, "");
-        const { data, error } = await supabase.rpc("get_email_by_celular", { _celular: digits });
-        if (error || !data) {
-          toast.error("Celular não encontrado");
-          setLoading(false);
-          return;
-        }
-        emailParaLogin = data;
+        emailParaLogin = `${digits}@osfacil.app`;
       }
+
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: emailParaLogin,
         password: senha,
       });
+
       if (signInError || !signInData.user) {
         toast.error("Login falhou", { description: signInError?.message });
         setLoading(false);
         return;
       }
+
       const { data: u } = await supabase
         .from("usuarios")
         .select("perfil")
         .eq("auth_user_id", signInData.user.id)
         .maybeSingle();
+
       if (u?.perfil === "super_admin") {
         window.location.href = "/admin";
       } else {
         window.location.href = "/dashboard";
       }
+
     } catch {
       toast.error("Erro inesperado");
     } finally {
