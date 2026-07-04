@@ -236,11 +236,12 @@ function PagamentosTab({ empresas, onEditPagamento }: {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => setRegistrandoId(null)}>Cancelar</Button>
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleRegistrarPagamento(e)} disabled={saving}>
-                        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
-                        Confirmar
-                      </Button>
+                      <button title="Cancelar" onClick={() => setRegistrandoId(null)} className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors">
+                      <X className="h-4 w-4" />
+                    </button>
+                      <button title="Confirmar pagamento" onClick={() => handleRegistrarPagamento(e)} disabled={saving} className="h-8 w-8 flex items-center justify-center rounded-md text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors">
+                        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-4 w-4" />}
+                      </button>
                     </div>
                   </div>
                 )}

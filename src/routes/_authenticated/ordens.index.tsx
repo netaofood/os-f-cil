@@ -209,16 +209,15 @@ function ItemInput({ produtos, onAdd }: ItemInputProps) {
         </div>
         <div className="col-span-4">
           <Label className="text-xs mb-1 block text-transparent select-none">add</Label>
-          <Button
+          <button
             type="button"
-            className="w-full"
-            variant="secondary"
+            title="Salvar item"
             onClick={handleSalvarItem}
             disabled={!descricao.trim()}
+            className="h-10 w-10 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all"
           >
-            <Plus className="h-4 w-4 mr-1" />
-            Salvar item
-          </Button>
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
       </div>
 

@@ -183,31 +183,25 @@ function ConfigPage() {
                       onChange={handleLogoFile}
                     />
                     <div className="flex gap-2 flex-wrap">
-                      <Button
+                      <button
                         type="button"
-                        size="sm"
-                        variant="outline"
+                        title={logoUrl ? "Trocar logo" : "Enviar logo"}
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploadingLogo}
+                        className="h-9 w-9 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
                       >
-                        {uploadingLogo ? (
-                          <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                        ) : (
-                          <Upload className="h-3.5 w-3.5 mr-1" />
-                        )}
-                        {logoUrl ? "Trocar logo" : "Enviar logo"}
-                      </Button>
+                        {uploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      </button>
                       {logoUrl && (
-                        <Button
+                        <button
                           type="button"
-                          size="sm"
-                          variant="ghost"
+                          title="Remover logo"
                           onClick={handleRemoveLogo}
                           disabled={uploadingLogo}
-                          className="text-destructive hover:text-destructive"
+                          className="h-9 w-9 flex items-center justify-center rounded-md text-destructive hover:bg-muted disabled:opacity-50 transition-colors"
                         >
-                          <Trash2 className="h-3.5 w-3.5 mr-1" /> Remover
-                        </Button>
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">

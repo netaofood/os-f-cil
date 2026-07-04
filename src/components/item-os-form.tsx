@@ -254,18 +254,14 @@ export function ItemOSForm({ osId, onItemAdded }: Props) {
         </div>
         <div className="col-span-4">
           <Label className="text-xs mb-1 block text-transparent select-none">ação</Label>
-          <Button
-            className="w-full"
+          <button
+            title="Salvar item"
             onClick={handleSalvar}
             disabled={saving || !descricao.trim()}
+            className="h-10 w-10 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-all dark:shadow-[0_0_10px_#00B4FF44]"
           >
-            {saving ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-1" />
-            ) : (
-              <Plus className="h-4 w-4 mr-1" />
-            )}
-            Salvar item
-          </Button>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          </button>
         </div>
       </div>
 

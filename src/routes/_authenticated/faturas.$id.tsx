@@ -128,12 +128,12 @@ function FaturaDetailPage() {
           </Link>
         </Button>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={copyLink}>
-            <Copy className="h-4 w-4 mr-1" /> Copiar link público
-          </Button>
-          <Button onClick={downloadPdf}>
-            <Download className="h-4 w-4 mr-1" /> PDF
-          </Button>
+          <button title="Copiar link público" onClick={copyLink} className="h-9 w-9 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+            <Copy className="h-4 w-4" />
+          </button>
+          <button title="Baixar PDF" onClick={downloadPdf} className="h-9 w-9 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+            <Download className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -249,22 +249,12 @@ function FaturaDetailPage() {
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                onClick={() => updateStatus("pago")}
-                disabled={updating || data.status === "pago"}
-              >
-                <CheckCircle2 className="h-4 w-4 mr-1 text-green-600" />
-                Pago
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => updateStatus("cancelado")}
-                disabled={updating || data.status === "cancelado"}
-              >
-                <XCircle className="h-4 w-4 mr-1 text-destructive" />
-                Cancelar
-              </Button>
+              <button title="Marcar como pago" onClick={() => updateStatus("pago")} disabled={updating || data.status === "pago"} className="h-9 w-9 flex items-center justify-center rounded-md text-green-600 hover:bg-muted disabled:opacity-40 transition-colors">
+                <CheckCircle2 className="h-4 w-4" />
+              </button>
+              <button title="Cancelar fatura" onClick={() => updateStatus("cancelado")} disabled={updating || data.status === "cancelado"} className="h-9 w-9 flex items-center justify-center rounded-md text-destructive hover:bg-muted disabled:opacity-40 transition-colors">
+                <XCircle className="h-4 w-4" />
+              </button>
             </div>
             <div className="pt-2 text-xs text-muted-foreground break-all">
               Link público:
