@@ -235,25 +235,45 @@ export default function AdminPage() {
   }
 
   function openResetModal(u: Usuario) {
+    const nova = gerarSenha();
+    setNovaSenha(nova);
     setResetAdmin(u);
-    setNovaSenha(gerarSenha());
-    setResetCriado(false);
+    // Abre direto o convite com a nova senha
+    setConviteAdmin({
+      nome: u.nome,
+      celular: u.celular ?? "",
+      senha: nova,
+      empresa: admins.find(a => a.id === u.id) ? "" : "",
+    });
     setResetModal(true);
   }
 
   async function handleResetSenha() {
     if (!resetAdmin) return;
     setSavingReset(true);
-    const nova = gerarSenha();
-    setNovaSenha(nova);
-    // Reseta via RPC confirmar_usuario_por_email para gerar nova senha
     const digits = (resetAdmin.celular ?? "").replace(/\D/g, "");
     const emailFake = `u${digits}@osfacil.app`;
-    // Usa admin API via server function para atualizar senha
-    const { error } = await supabase.rpc("confirmar_usuario_por_email" as any, { p_email: emailFake });
+
+    // Atualiza a senha via Supabase Admin API (server function)
+    const { error } = await supabase.rpc("resetar_senha_usuario" as any, {
+      p_email: emailFake,
+      p_nova_senha: novaSenha,
+    });
+
     setSavingReset(false);
-    if (error) toast.error(error.message);
-    else { setResetCriado(true); }
+    if (error) {
+      toast.error("Erro ao resetar senha");
+      return;
+    }
+    setResetModal(false);
+    // Abre modal de convite com a nova senha
+    setConviteAdmin({
+      nome: resetAdmin.nome,
+      celular: resetAdmin.celular ?? "",
+      senha: novaSenha,
+      empresa: "",
+    });
+    setConviteModal(true);
   }
 
   function openEditAdmin(u: Usuario) {
@@ -634,27 +654,24 @@ export default function AdminPage() {
       <Dialog open={resetModal} onOpenChange={(o) => !savingReset && setResetModal(o)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle style={{ fontFamily: "Orbitron, sans-serif" }}>Reset de senha</DialogTitle>
+            <DialogTitle style={{ fontFamily: "Orbitron, sans-serif" }}>Nova senha</DialogTitle>
           </DialogHeader>
-          {!resetCriado ? (
-            <>
-              <p className="text-sm text-muted-foreground">
-                Será enviado um email de redefinição de senha para <strong>{resetAdmin?.email}</strong>.
-              </p>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setResetModal(false)} disabled={savingReset}>Cancelar</Button>
-                <Button onClick={handleResetSenha} disabled={savingReset}>
-                  {savingReset ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <KeyRound className="h-4 w-4 mr-1" />}
-                  Enviar reset
-                </Button>
-              </DialogFooter>
-            </>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-green-600 font-medium">Email de reset enviado com sucesso!</p>
-              <Button variant="ghost" className="w-full" onClick={() => setResetModal(false)}>Fechar</Button>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Uma nova senha foi gerada para <strong>{resetAdmin?.nome}</strong>. Confirme para aplicar e enviar ao usuário.
+            </p>
+            <div className="rounded-lg bg-muted p-4 font-mono text-center">
+              <p className="text-xs text-muted-foreground mb-1">Nova senha</p>
+              <p className="text-xl font-bold tracking-widest text-primary">{novaSenha}</p>
             </div>
-          )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetModal(false)} disabled={savingReset}>Cancelar</Button>
+            <Button onClick={handleResetSenha} disabled={savingReset}>
+              {savingReset ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <KeyRound className="h-4 w-4 mr-1" />}
+              Aplicar e enviar
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
