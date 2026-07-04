@@ -46,6 +46,238 @@ function gerarSenha() {
   return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
+const brlFormat = (n: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+
+const mesAtual = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
+const mesLabel = (ref: string) => {
+  const [ano, mes] = ref.split("-");
+  const meses = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  return `${meses[Number(mes) - 1]}/${ano}`;
+};
+
+function situacaoPagamento(e: Empresa) {
+  if (e.status_pagamento === "cancelada") return { label: "Cancelada", color: "bg-gray-500", icon: "⚫" };
+  if (e.status_pagamento === "inadimplente") return { label: "Inadimplente", color: "bg-red-500", icon: "🔴" };
+  const dia = (e as any).dia_faturamento;
+  if (dia) {
+    const hoje = new Date().getDate();
+    if (hoje > dia) return { label: "Verificar", color: "bg-yellow-500", icon: "🟡" };
+  }
+  return { label: "Em dia", color: "bg-green-500", icon: "🟢" };
+}
+
+function PagamentosTab({ empresas, onEditPagamento }: {
+  empresas: Empresa[];
+  onEditPagamento: (e: Empresa) => void;
+}) {
+  const qc = useQueryClient();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [registrandoId, setRegistrandoId] = useState<string | null>(null);
+  const [valorPago, setValorPago] = useState("");
+  const [obsPago, setObsPago] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const { data: pagamentos = [] } = useQuery({
+    queryKey: ["admin-pagamentos"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("pagamentos_empresas" as any)
+        .select("*")
+        .order("mes_referencia", { ascending: false });
+      return (data as unknown as Array<{
+        id: string; empresa_id: string; mes_referencia: string;
+        valor_pago: number; pago_em: string; observacao: string | null;
+      }>) ?? [];
+    },
+  });
+
+  const pagamentosEmpresa = (empresaId: string) =>
+    pagamentos.filter((p) => p.empresa_id === empresaId);
+
+  const jaPagouMesAtual = (empresaId: string) => {
+    const mes = mesAtual();
+    return pagamentos.some((p) => p.empresa_id === empresaId && p.mes_referencia === mes);
+  };
+
+  const totalRecebido = (empresaId: string) =>
+    pagamentosEmpresa(empresaId).reduce((acc, p) => acc + Number(p.valor_pago), 0);
+
+  async function handleRegistrarPagamento(e: Empresa) {
+    setSaving(true);
+    const valor = Number(valorPago) || Number((e as any).valor_plano) || 0;
+    const { error } = await supabase.from("pagamentos_empresas" as any).insert({
+      empresa_id: e.id,
+      mes_referencia: mesAtual(),
+      valor_pago: valor,
+      observacao: obsPago || null,
+    });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    // Marca como ativa
+    await supabase.from("empresas").update({ status_pagamento: "ativa" } as any).eq("id", e.id);
+    toast.success("Pagamento registrado!");
+    setRegistrandoId(null);
+    setValorPago("");
+    setObsPago("");
+    qc.invalidateQueries({ queryKey: ["admin-pagamentos"] });
+    qc.invalidateQueries({ queryKey: ["admin-empresas"] });
+  }
+
+  const totalGeral = pagamentos.reduce((acc, p) => acc + Number(p.valor_pago), 0);
+
+  return (
+    <div className="space-y-4">
+      {/* Resumo geral */}
+      <div className="grid grid-cols-3 gap-3 mb-2">
+        <div className="rounded-lg border border-border bg-card p-3 text-center">
+          <p className="text-xs text-muted-foreground">Total empresas</p>
+          <p className="text-xl font-bold text-primary font-mono">{empresas.length}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-3 text-center">
+          <p className="text-xs text-muted-foreground">Em dia</p>
+          <p className="text-xl font-bold text-green-500 font-mono">
+            {empresas.filter(e => situacaoPagamento(e).label === "Em dia").length}
+          </p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-3 text-center">
+          <p className="text-xs text-muted-foreground">Total recebido</p>
+          <p className="text-lg font-bold text-primary font-mono">{brlFormat(totalGeral)}</p>
+        </div>
+      </div>
+
+      {/* Lista de empresas */}
+      {empresas.map((e) => {
+        const situacao = situacaoPagamento(e);
+        const expanded = expandedId === e.id;
+        const registrando = registrandoId === e.id;
+        const hist = pagamentosEmpresa(e.id);
+        const pago = jaPagouMesAtual(e.id);
+        const valorPlano = Number((e as any).valor_plano) || 0;
+        const dia = (e as any).dia_faturamento;
+
+        return (
+          <div key={e.id} className="border border-border rounded-lg overflow-hidden bg-card">
+            {/* Header */}
+            <button
+              className="w-full flex items-center justify-between p-4 hover:bg-muted/40 transition-colors text-left"
+              onClick={() => setExpandedId(expanded ? null : e.id)}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <ChevronRight className={`h-4 w-4 text-primary shrink-0 transition-transform ${expanded ? "rotate-90" : ""}`} />
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm truncate">{e.nome}</p>
+                  <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                    {valorPlano > 0 && (
+                      <span className="text-xs font-mono text-muted-foreground">{brlFormat(valorPlano)}/mês</span>
+                    )}
+                    {dia && (
+                      <span className="text-xs text-muted-foreground">· vence dia {dia}</span>
+                    )}
+                    <span className={`text-[10px] text-white px-2 py-0.5 rounded-full ${situacao.color}`}>
+                      {situacao.label}
+                    </span>
+                    {pago && (
+                      <span className="text-[10px] text-white px-2 py-0.5 rounded-full bg-green-600">
+                        ✓ Pago {mesLabel(mesAtual())}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="shrink-0 text-right ml-2">
+                <p className="text-xs text-muted-foreground">Total recebido</p>
+                <p className="text-sm font-bold font-mono text-primary">{brlFormat(totalRecebido(e.id))}</p>
+              </div>
+            </button>
+
+            {/* Expandido */}
+            {expanded && (
+              <div className="border-t border-border p-4 space-y-4 bg-background/50">
+                {/* Ações */}
+                <div className="flex gap-2 flex-wrap">
+                  {!pago && (
+                    <Button
+                      size="sm"
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => { setRegistrandoId(e.id); setValorPago(String(valorPlano || "")); }}
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Registrar pagamento
+                    </Button>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => onEditPagamento(e)}>
+                    <Pencil className="h-3.5 w-3.5 mr-1" /> Editar plano
+                  </Button>
+                </div>
+
+                {/* Formulário de registro */}
+                {registrando && (
+                  <div className="rounded-lg border border-border p-3 space-y-3 bg-card">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Registrar pagamento — {mesLabel(mesAtual())}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Valor pago (R$)</Label>
+                        <Input
+                          type="number" step="0.01" min="0"
+                          value={valorPago}
+                          onChange={(e) => setValorPago(e.target.value)}
+                          placeholder="0,00"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Observação</Label>
+                        <Input value={obsPago} onChange={(e) => setObsPago(e.target.value)} placeholder="Opcional" />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => setRegistrandoId(null)}>Cancelar</Button>
+                      <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleRegistrarPagamento(e)} disabled={saving}>
+                        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                        Confirmar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Histórico */}
+                {hist.length > 0 ? (
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Histórico de pagamentos</p>
+                    <div className="space-y-1">
+                      {hist.map((p) => (
+                        <div key={p.id} className="flex items-center justify-between text-sm py-2 border-b border-border/50">
+                          <div>
+                            <p className="font-medium">{mesLabel(p.mes_referencia)}</p>
+                            {p.observacao && <p className="text-xs text-muted-foreground">{p.observacao}</p>}
+                          </div>
+                          <div className="text-right">
+                            <p className="font-mono font-semibold text-green-600">{brlFormat(Number(p.valor_pago))}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(p.pago_em).toLocaleDateString("pt-BR")}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Nenhum pagamento registrado ainda.</p>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<"empresas" | "pagamentos">("empresas");
@@ -505,32 +737,20 @@ export default function AdminPage() {
 
       {/* ABA PAGAMENTOS */}
       {tab === "pagamentos" && (
-        <div className="space-y-2">
-          {empresas.map((e) => (
-            <div key={e.id} className="flex items-center justify-between gap-3 p-4 rounded-lg border border-border bg-card">
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold text-sm">{e.nome}</p>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className={`text-[10px] text-white px-2 py-0.5 rounded-full ${statusColor[e.status_pagamento ?? "ativa"]}`}>
-                    {statusLabel[e.status_pagamento ?? "ativa"]}
-                  </span>
-                  {e.vencimento_plano && (
-                    <span className="text-xs text-muted-foreground">
-                      Vence: {new Date(e.vencimento_plano).toLocaleDateString("pt-BR")}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => {
-                setPagamentoEmpresa(e);
-                setPagamentoForm({ status_pagamento: e.status_pagamento ?? "ativa", vencimento_plano: e.vencimento_plano?.slice(0,10) ?? "", observacoes_pagamento: e.observacoes_pagamento ?? "", valor_plano: String((e as any).valor_plano ?? ""), dia_faturamento: String((e as any).dia_faturamento ?? "") });
-                setPagamentoModal(true);
-              }}>
-                <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-              </Button>
-            </div>
-          ))}
-        </div>
+        <PagamentosTab
+          empresas={empresas}
+          onEditPagamento={(e) => {
+            setPagamentoEmpresa(e);
+            setPagamentoForm({
+              status_pagamento: e.status_pagamento ?? "ativa",
+              vencimento_plano: "",
+              observacoes_pagamento: e.observacoes_pagamento ?? "",
+              valor_plano: String((e as any).valor_plano ?? ""),
+              dia_faturamento: String((e as any).dia_faturamento ?? ""),
+            });
+            setPagamentoModal(true);
+          }}
+        />
       )}
 
       {/* Modal Empresa */}
