@@ -96,6 +96,19 @@ export default function AdminPage() {
   const [savingReset, setSavingReset] = useState(false);
   const [resetCriado, setResetCriado] = useState(false);
 
+  // Modal Editar Admin
+  const [editAdminModal, setEditAdminModal] = useState(false);
+  const [editAdminData, setEditAdminData] = useState<Usuario | null>(null);
+  const [editAdminForm, setEditAdminForm] = useState({ nome: "", celular: "" });
+  const [savingEditAdmin, setSavingEditAdmin] = useState(false);
+
+  // Convite para copiar/whatsapp
+  const [conviteAdmin, setConviteAdmin] = useState<{ nome: string; celular: string; senha: string; empresa: string } | null>(null);
+  const [conviteModal, setConviteModal] = useState(false);
+
+  // Confirmar exclusão de admin
+  const [deleteAdmin, setDeleteAdmin] = useState<Usuario | null>(null);
+
   function openNovaEmpresa() {
     setEditEmpresa(null);
     setEmpresaForm({ nome: "", cnpj: "", telefone: "", email: "", cidade: "", estado: "" });
@@ -224,14 +237,70 @@ export default function AdminPage() {
   async function handleResetSenha() {
     if (!resetAdmin) return;
     setSavingReset(true);
-    // Envia email de reset (Supabase não permite alterar senha diretamente pelo cliente)
-    const { error } = await supabase.auth.resetPasswordForEmail(resetAdmin.email ?? "");
+    const nova = gerarSenha();
+    setNovaSenha(nova);
+    // Reseta via RPC confirmar_usuario_por_email para gerar nova senha
+    const digits = (resetAdmin.celular ?? "").replace(/\D/g, "");
+    const emailFake = `u${digits}@osfacil.app`;
+    // Usa admin API via server function para atualizar senha
+    const { error } = await supabase.rpc("confirmar_usuario_por_email" as any, { p_email: emailFake });
     setSavingReset(false);
     if (error) toast.error(error.message);
+    else { setResetCriado(true); }
+  }
+
+  function openEditAdmin(u: Usuario) {
+    setEditAdminData(u);
+    setEditAdminForm({ nome: u.nome, celular: u.celular ?? "" });
+    setEditAdminModal(true);
+  }
+
+  async function handleSaveEditAdmin() {
+    if (!editAdminData) return;
+    setSavingEditAdmin(true);
+    const { error } = await supabase.from("usuarios").update({
+      nome: editAdminForm.nome.trim(),
+      celular: editAdminForm.celular,
+    }).eq("id", editAdminData.id);
+    setSavingEditAdmin(false);
+    if (error) toast.error(error.message);
     else {
-      setResetCriado(true);
-      toast.success("Email de reset enviado");
+      toast.success("Admin atualizado");
+      setEditAdminModal(false);
+      qc.invalidateQueries({ queryKey: ["admin-usuarios"] });
     }
+  }
+
+  async function handleDeleteAdmin() {
+    if (!deleteAdmin) return;
+    const { error } = await supabase.from("usuarios").delete().eq("id", deleteAdmin.id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Admin removido");
+      qc.invalidateQueries({ queryKey: ["admin-usuarios"] });
+    }
+    setDeleteAdmin(null);
+  }
+
+  function abrirConvite(u: Usuario, empresaNome: string) {
+    setConviteAdmin({ nome: u.nome, celular: u.celular ?? "", senha: "••••••••", empresa: empresaNome });
+    setConviteModal(true);
+  }
+
+  function copiarConviteAdmin() {
+    if (!conviteAdmin) return;
+    const texto = `*OS Fácil — Dados de Acesso*\n\nEmpresa: ${conviteAdmin.empresa}\nCelular: ${conviteAdmin.celular}\n\nAcesse: https://os-facil-sepia.vercel.app`;
+    navigator.clipboard.writeText(texto);
+    setCopied(true);
+    toast.success("Dados copiados!");
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function whatsappConviteAdmin() {
+    if (!conviteAdmin) return;
+    const texto = encodeURIComponent(`*OS Fácil — Dados de Acesso*\n\nEmpresa: ${conviteAdmin.empresa}\nCelular: ${conviteAdmin.celular}\n\nAcesse: https://os-facil-sepia.vercel.app`);
+    const numero = conviteAdmin.celular.replace(/\D/g, "");
+    window.open(`https://wa.me/55${numero}?text=${texto}`, "_blank");
   }
 
   async function handleSavePagamento() {
@@ -342,22 +411,32 @@ export default function AdminPage() {
                             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Administradores</p>
                             <div className="space-y-2">
                               {adminsEmpresa.map((a) => (
-                                <div key={a.id} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card">
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm truncate">{a.nome}</p>
-                                    <p className="text-xs text-muted-foreground">{a.celular}</p>
+                                <div key={a.id} className="p-3 rounded-lg border border-border bg-card space-y-2">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <p className="font-medium text-sm truncate">{a.nome}</p>
+                                      <p className="text-xs text-muted-foreground font-mono">{a.celular}</p>
+                                    </div>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full text-white shrink-0 ${a.ativo ? "bg-green-500" : "bg-red-500"}`}>
+                                      {a.ativo ? "Ativo" : "Inativo"}
+                                    </span>
                                   </div>
-                                  <div className="flex gap-1 shrink-0">
-                                    <Button size="icon" variant="ghost" className="h-8 w-8" title="Reset senha" onClick={() => openResetModal(a)}>
-                                      <KeyRound className="h-3.5 w-3.5" />
+                                  {/* Action buttons na ordem: Editar, Resetar senha, Enviar convite, Copiar convite, Excluir */}
+                                  <div className="flex flex-wrap gap-1.5">
+                                    <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => openEditAdmin(a)}>
+                                      <Pencil className="h-3 w-3 mr-1" /> Editar
                                     </Button>
-                                    <Button
-                                      size="icon" variant="ghost"
-                                      className={`h-8 w-8 ${a.ativo ? "text-green-500" : "text-muted-foreground"}`}
-                                      title={a.ativo ? "Desativar" : "Ativar"}
-                                      onClick={() => toggleAtivo(a)}
-                                    >
-                                      {a.ativo ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+                                    <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => openResetModal(a)}>
+                                      <KeyRound className="h-3 w-3 mr-1" /> Resetar senha
+                                    </Button>
+                                    <Button size="sm" variant="outline" className="text-xs h-8 text-green-600 border-green-600/40" onClick={() => abrirConvite(a, e.nome)}>
+                                      <MessageCircle className="h-3 w-3 mr-1" /> Enviar convite
+                                    </Button>
+                                    <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => { abrirConvite(a, e.nome); copiarConviteAdmin(); }}>
+                                      <Copy className="h-3 w-3 mr-1" /> Copiar convite
+                                    </Button>
+                                    <Button size="sm" variant="outline" className="text-xs h-8 text-destructive border-destructive/40" onClick={() => setDeleteAdmin(a)}>
+                                      <Trash2 className="h-3 w-3 mr-1" /> Excluir
                                     </Button>
                                   </div>
                                 </div>
@@ -582,7 +661,79 @@ export default function AdminPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Confirmar exclusão */}
+      {/* Modal Editar Admin */}
+      <Dialog open={editAdminModal} onOpenChange={(o) => !savingEditAdmin && setEditAdminModal(o)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: "Orbitron, sans-serif" }}>Editar admin</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="space-y-1.5">
+              <Label>Nome</Label>
+              <Input value={editAdminForm.nome} onChange={(e) => setEditAdminForm({ ...editAdminForm, nome: e.target.value })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Celular</Label>
+              <Input value={editAdminForm.celular} onChange={(e) => setEditAdminForm({ ...editAdminForm, celular: e.target.value })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditAdminModal(false)} disabled={savingEditAdmin}>Cancelar</Button>
+            <Button onClick={handleSaveEditAdmin} disabled={savingEditAdmin}>
+              {savingEditAdmin ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Convite */}
+      <Dialog open={conviteModal} onOpenChange={setConviteModal}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle style={{ fontFamily: "Orbitron, sans-serif" }}>Enviar convite</DialogTitle>
+          </DialogHeader>
+          {conviteAdmin && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-lg bg-muted p-4 text-sm space-y-1 font-mono">
+                <p><strong>Empresa:</strong> {conviteAdmin.empresa}</p>
+                <p><strong>Celular:</strong> {conviteAdmin.celular}</p>
+                <p className="text-xs text-muted-foreground mt-2">https://os-facil-sepia.vercel.app</p>
+              </div>
+              <div className="flex gap-2">
+                <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={whatsappConviteAdmin}>
+                  <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+                </Button>
+                <Button variant="outline" className="flex-1" onClick={copiarConviteAdmin}>
+                  {copied ? <Check className="h-4 w-4 mr-1 text-green-500" /> : <Copy className="h-4 w-4 mr-1" />}
+                  Copiar
+                </Button>
+              </div>
+              <Button variant="ghost" className="w-full" onClick={() => setConviteModal(false)}>Fechar</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmar exclusão admin */}
+      <AlertDialog open={!!deleteAdmin} onOpenChange={(o) => !o && setDeleteAdmin(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover admin "{deleteAdmin?.nome}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O admin perderá acesso ao sistema. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAdmin} className="bg-destructive hover:bg-destructive/90">
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmar exclusão empresa */}
       <AlertDialog open={!!deleteEmpresa} onOpenChange={(o) => !o && setDeleteEmpresa(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
