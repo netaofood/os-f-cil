@@ -8,6 +8,7 @@ export type Empresa = Tables<"empresas">;
 export function useCurrentUsuario() {
   return useQuery({
     queryKey: ["current-usuario"],
+    staleTime: 0,
     queryFn: async (): Promise<Usuario | null> => {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session?.user) return null;

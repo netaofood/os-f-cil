@@ -523,7 +523,7 @@ function OrdensPage() {
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={openModal} disabled={!usuario?.empresa_id}>
+        <Button onClick={openModal} disabled={!usuario}>
           <Plus className="h-4 w-4 mr-1" />
           Nova OS
         </Button>
@@ -776,7 +776,7 @@ function OrdensPage() {
             <Button variant="outline" onClick={() => setModalOpen(false)} disabled={creating}>
               Cancelar
             </Button>
-            <Button onClick={handleCreate} disabled={creating || !usuario?.empresa_id}>
+            <Button onClick={handleCreate} disabled={creating || !usuario}>
               {creating ? (
                 <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               ) : (
