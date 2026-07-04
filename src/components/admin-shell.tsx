@@ -77,7 +77,7 @@ export function AdminShell({ title, children }: { title: string; children: React
           </Button>
         </div>
       </header>
-      <main className="flex-1 p-4 md:p-6 max-w-6xl mx-auto w-full">
+      <main className="flex-1 p-4 pb-20 md:p-6 md:pb-24 max-w-6xl mx-auto w-full">
         {children}
       </main>
     </div>

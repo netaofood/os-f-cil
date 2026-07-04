@@ -347,26 +347,9 @@ export default function AdminPage() {
 
   return (
     <AdminShell title="Painel Admin">
-      {/* Tabs estilo bottom nav */}
-      <div className="flex gap-2 mb-6 border-b border-border pb-3">
-        {[
-          { key: "empresas", label: "Empresas", icon: Building2 },
-          { key: "pagamentos", label: "Pagamentos", icon: CreditCard },
-        ].map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key as any)}
-            className={`flex flex-col items-center justify-center gap-1 py-2.5 px-4 rounded-lg text-xs font-semibold transition-all flex-1
-              ${tab === key
-                ? "bg-primary text-primary-foreground dark:shadow-[0_0_10px_#00B4FF66]"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted border border-border"
-              }`}
-          >
-            <Icon className="h-5 w-5" />
-            {label}
-          </button>
-        ))}
-        <Button size="sm" className="self-center dark:shadow-[0_0_10px_#00B4FF44]" onClick={openNovaEmpresa}>
+      {/* Botão Nova empresa no topo */}
+      <div className="flex justify-end mb-4">
+        <Button size="sm" className="dark:shadow-[0_0_10px_#00B4FF44]" onClick={openNovaEmpresa}>
           <Plus className="h-4 w-4 mr-1" /> Nova empresa
         </Button>
       </div>
@@ -823,6 +806,28 @@ export default function AdminPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Bottom Navigation fixo */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border h-16">
+        <div className="flex h-full max-w-6xl mx-auto">
+          {[
+            { key: "empresas", label: "Empresas", icon: Building2 },
+            { key: "pagamentos", label: "Pagamentos", icon: CreditCard },
+          ].map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setTab(key as any)}
+              className={`flex flex-col items-center justify-center flex-1 gap-0.5 text-[10px] font-medium transition-colors
+                ${tab === key
+                  ? "text-primary dark:drop-shadow-[0_0_6px_#00B4FF]"
+                  : "text-muted-foreground hover:text-foreground"
+                }`}
+            >
+              <Icon className={`h-5 w-5 ${tab === key ? "stroke-[2.5]" : "stroke-[1.5]"}`} />
+              {label}
+            </button>
+          ))}
+        </div>
+      </nav>
     </AdminShell>
   );
 }
