@@ -693,10 +693,6 @@ export default function AdminPage() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label>Vencimento do plano</Label>
-              <Input type="date" value={pagamentoForm.vencimento_plano} onChange={(e) => setPagamentoForm({ ...pagamentoForm, vencimento_plano: e.target.value })} />
-            </div>
-            <div className="space-y-1.5">
               <Label>Observações</Label>
               <Textarea value={pagamentoForm.observacoes_pagamento} onChange={(e) => setPagamentoForm({ ...pagamentoForm, observacoes_pagamento: e.target.value })} rows={3} />
             </div>
