@@ -117,9 +117,14 @@ function FaturasPage() {
             <SelectItem value="cancelado">Canceladas</SelectItem>
           </SelectContent>
         </Select>
-        <Button onClick={() => setNewOpen(true)} disabled={!usuario?.empresa_id}>
-          <Plus className="h-4 w-4 mr-1" /> Nova fatura
-        </Button>
+        <button
+          onClick={() => setNewOpen(true)}
+          disabled={!usuario?.empresa_id}
+          title="Nova fatura"
+          className="h-10 w-10 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 dark:shadow-[0_0_12px_#00B4FF66] transition-all"
+        >
+          <Plus className="h-5 w-5" />
+        </button>
       </div>
 
       {isLoading ? (

@@ -209,9 +209,9 @@ function PagamentosTab({ empresas, onEditPagamento }: {
                       <Plus className="h-3.5 w-3.5 mr-1" /> Registrar pagamento
                     </Button>
                   )}
-                  <Button size="sm" variant="outline" onClick={() => onEditPagamento(e)}>
-                    <Pencil className="h-3.5 w-3.5 mr-1" /> Editar plano
-                  </Button>
+                  <button title="Editar plano" onClick={() => onEditPagamento(e)} className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <Pencil className="h-4 w-4" />
+                  </button>
                 </div>
 
                 {/* Formulário de registro */}
@@ -594,9 +594,13 @@ export default function AdminPage() {
     <AdminShell title="Painel Admin">
       {/* Botão Nova empresa no topo */}
       <div className="flex justify-end mb-4">
-        <Button size="sm" className="dark:shadow-[0_0_10px_#00B4FF44]" onClick={openNovaEmpresa}>
-          <Plus className="h-4 w-4 mr-1" /> Nova empresa
-        </Button>
+        <button
+          onClick={openNovaEmpresa}
+          title="Nova empresa"
+          className="h-10 w-10 flex items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary/90 dark:shadow-[0_0_12px_#00B4FF66] transition-all"
+        >
+          <Plus className="h-5 w-5" />
+        </button>
       </div>
 
       {/* ABA EMPRESAS */}
@@ -652,18 +656,18 @@ export default function AdminPage() {
                       <div className="border-t border-border p-4 space-y-4 bg-background/50">
                         {/* Ações da empresa */}
                         <div className="flex flex-wrap gap-2">
-                          <Button size="sm" variant="outline" onClick={() => openEditEmpresa(e)}>
-                            <Pencil className="h-3.5 w-3.5 mr-1" /> Editar empresa
-                          </Button>
+                          <button title="Editar empresa" onClick={() => openEditEmpresa(e)} className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                            <Pencil className="h-4 w-4" />
+                          </button>
                           <Button size="sm" variant="outline" onClick={() => { setPagamentoEmpresa(e); setPagamentoForm({ status_pagamento: e.status_pagamento ?? "ativa", vencimento_plano: e.vencimento_plano?.slice(0,10) ?? "", observacoes_pagamento: e.observacoes_pagamento ?? "", valor_plano: String((e as any).valor_plano ?? ""), dia_faturamento: String((e as any).dia_faturamento ?? "") }); setPagamentoModal(true); }}>
                             <CreditCard className="h-3.5 w-3.5 mr-1" /> Pagamento
                           </Button>
-                          <Button size="sm" variant="outline" className="text-primary border-primary/50" onClick={() => openAdminModal(e)}>
-                            <Plus className="h-3.5 w-3.5 mr-1" /> Criar admin
-                          </Button>
-                          <Button size="sm" variant="outline" className="text-destructive border-destructive/50 ml-auto" onClick={() => setDeleteEmpresa(e)}>
-                            <Trash2 className="h-3.5 w-3.5 mr-1" /> Excluir
-                          </Button>
+                          <button title="Criar admin" onClick={() => openAdminModal(e)} className="h-8 w-8 flex items-center justify-center rounded-md text-primary hover:bg-muted transition-colors">
+                            <Plus className="h-4 w-4" />
+                          </button>
+                          <button title="Excluir empresa" onClick={() => setDeleteEmpresa(e)} className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
 
                         {/* Lista de admins */}

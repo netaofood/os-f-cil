@@ -325,10 +325,9 @@ function OrdemDetailPage() {
           <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
         </Button>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setShareModal(true)}>
-            <Send className="h-4 w-4 mr-1" />
-            Enviar orçamento
-          </Button>
+          <button title="Enviar orçamento" onClick={() => setShareModal(true)} className="h-9 w-9 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors">
+            <Send className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -376,9 +375,9 @@ function OrdemDetailPage() {
               <div className="flex items-center justify-between mb-4">
                 <p className="font-semibold text-base">Dados gerais</p>
                 {!editing ? (
-                  <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-                    <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
-                  </Button>
+                  <button title="Editar" onClick={() => setEditing(true)} className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+                    <Pencil className="h-4 w-4" />
+                  </button>
                 ) : (
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={handleCancelEdit} disabled={saving}>
