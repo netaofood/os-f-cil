@@ -176,23 +176,24 @@ export function ClienteBusca({ clientes, value, onChange, onNovoCliente, empresa
             />
           </div>
           <div className="flex gap-2 pt-1">
-            <Button
+            <button
               type="button"
-              size="sm"
-              variant="outline"
+              title="Cancelar"
               onClick={() => { setShowNovoForm(false); setNovoNome(""); setNovoTelefone(""); }}
               disabled={salvando}
+              className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
             >
-              <X className="h-3.5 w-3.5 mr-1" /> Cancelar
-            </Button>
-            <Button
+              <X className="h-4 w-4" />
+            </button>
+            <button
               type="button"
-              size="sm"
+              title="Salvar cliente"
               onClick={handleSalvarNovo}
               disabled={salvando}
+              className="h-8 w-8 flex items-center justify-center rounded-md text-white bg-primary hover:bg-primary/90 disabled:opacity-50 transition-colors"
             >
-              <Check className="h-3.5 w-3.5 mr-1" /> Salvar cliente
-            </Button>
+              <Check className="h-4 w-4" />
+            </button>
           </div>
         </div>
       )}
