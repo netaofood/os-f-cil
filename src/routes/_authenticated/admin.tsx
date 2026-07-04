@@ -316,7 +316,7 @@ export default function AdminPage() {
 
   function copiarConviteAdmin() {
     if (!conviteAdmin) return;
-    const texto = `*OS Fácil — Dados de Acesso*\n\nEmpresa: ${conviteAdmin.empresa}\nCelular: ${conviteAdmin.celular}\n\nAcesse: https://os-facil-sepia.vercel.app`;
+    const texto = `*OS Fácil — Dados de Acesso*\n\nEmpresa: ${conviteAdmin.empresa}\nCelular: ${conviteAdmin.celular}\nSenha: ${conviteAdmin.senha}\n\nAcesse: https://os-facil-sepia.vercel.app`;
     navigator.clipboard.writeText(texto);
     setCopied(true);
     toast.success("Dados copiados!");
@@ -325,7 +325,7 @@ export default function AdminPage() {
 
   function whatsappConviteAdmin() {
     if (!conviteAdmin) return;
-    const texto = encodeURIComponent(`*OS Fácil — Dados de Acesso*\n\nEmpresa: ${conviteAdmin.empresa}\nCelular: ${conviteAdmin.celular}\n\nAcesse: https://os-facil-sepia.vercel.app`);
+    const texto = encodeURIComponent(`*OS Fácil — Dados de Acesso*\n\nEmpresa: ${conviteAdmin.empresa}\nCelular: ${conviteAdmin.celular}\nSenha: ${conviteAdmin.senha}\n\nAcesse: https://os-facil-sepia.vercel.app`);
     const numero = conviteAdmin.celular.replace(/\D/g, "");
     window.open(`https://wa.me/55${numero}?text=${texto}`, "_blank");
   }
@@ -771,6 +771,9 @@ export default function AdminPage() {
               <div className="rounded-lg bg-muted p-4 text-sm space-y-1 font-mono">
                 <p><strong>Empresa:</strong> {conviteAdmin.empresa}</p>
                 <p><strong>Celular:</strong> {conviteAdmin.celular}</p>
+                {conviteAdmin.senha && conviteAdmin.senha !== "••••••••" && (
+                  <p><strong>Senha:</strong> {conviteAdmin.senha}</p>
+                )}
                 <p className="text-xs text-muted-foreground mt-2">https://os-facil-sepia.vercel.app</p>
               </div>
               <div className="flex gap-2">
