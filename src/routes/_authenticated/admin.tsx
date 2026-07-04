@@ -182,15 +182,22 @@ export default function AdminPage() {
       if (authErr) throw authErr;
       if (!authData.user) throw new Error("Usuário não criado");
 
-      // Aguarda trigger criar registro em usuarios
-      await new Promise(r => setTimeout(r, 800));
+      // Aguarda trigger criar registro em usuarios (aumentado para 2s)
+      await new Promise(r => setTimeout(r, 2000));
 
-      const { error: updErr } = await supabase.from("usuarios").update({
-        empresa_id: adminEmpresa.id,
-        perfil: "admin",
-        celular: adminForm.celular,
-        nome: adminForm.nome.trim(),
-      }).eq("auth_user_id", authData.user.id);
+      // Tenta vincular à empresa com retry
+      let updErr = null;
+      for (let i = 0; i < 3; i++) {
+        const { error } = await supabase.from("usuarios").update({
+          empresa_id: adminEmpresa.id,
+          perfil: "admin",
+          celular: adminForm.celular,
+          nome: adminForm.nome.trim(),
+        }).eq("auth_user_id", authData.user.id);
+        updErr = error;
+        if (!error) break;
+        await new Promise(r => setTimeout(r, 1000));
+      }
       if (updErr) throw updErr;
 
       // Confirma email fake automaticamente via SQL
@@ -340,7 +347,7 @@ export default function AdminPage() {
 
   return (
     <AdminShell title="Painel Admin">
-      {/* Tabs */}
+      {/* Tabs estilo bottom nav */}
       <div className="flex gap-2 mb-6 border-b border-border pb-3">
         {[
           { key: "empresas", label: "Empresas", icon: Building2 },
@@ -349,17 +356,17 @@ export default function AdminPage() {
           <button
             key={key}
             onClick={() => setTab(key as any)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all
+            className={`flex flex-col items-center justify-center gap-1 py-2.5 px-4 rounded-lg text-xs font-semibold transition-all flex-1
               ${tab === key
                 ? "bg-primary text-primary-foreground dark:shadow-[0_0_10px_#00B4FF66]"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted border border-border"
               }`}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-5 w-5" />
             {label}
           </button>
         ))}
-        <Button size="sm" className="ml-auto dark:shadow-[0_0_10px_#00B4FF44]" onClick={openNovaEmpresa}>
+        <Button size="sm" className="self-center dark:shadow-[0_0_10px_#00B4FF44]" onClick={openNovaEmpresa}>
           <Plus className="h-4 w-4 mr-1" /> Nova empresa
         </Button>
       </div>
