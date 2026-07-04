@@ -234,16 +234,15 @@ export default function AdminPage() {
     }
   }
 
-  function openResetModal(u: Usuario) {
+  function openResetModal(u: Usuario, empresaNome: string) {
     const nova = gerarSenha();
     setNovaSenha(nova);
     setResetAdmin(u);
-    // Abre direto o convite com a nova senha
     setConviteAdmin({
       nome: u.nome,
       celular: u.celular ?? "",
       senha: nova,
-      empresa: admins.find(a => a.id === u.id) ? "" : "",
+      empresa: empresaNome,
     });
     setResetModal(true);
   }
@@ -266,13 +265,7 @@ export default function AdminPage() {
       return;
     }
     setResetModal(false);
-    // Abre modal de convite com a nova senha
-    setConviteAdmin({
-      nome: resetAdmin.nome,
-      celular: resetAdmin.celular ?? "",
-      senha: novaSenha,
-      empresa: "",
-    });
+    // Abre modal de convite com a nova senha (empresa já está em conviteAdmin)
     setConviteModal(true);
   }
 
@@ -468,7 +461,7 @@ export default function AdminPage() {
                                     </button>
                                     <button
                                       title="Resetar senha"
-                                      onClick={() => openResetModal(a)}
+                                      onClick={() => openResetModal(a, e.nome)}
                                       className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                                     >
                                       <KeyRound className="h-4 w-4" />
