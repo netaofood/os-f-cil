@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Plus, Search, Loader2, FileText, Trash2,
-  Check, PackagePlus, X, Pencil, Save, ExternalLink,
+  Check, PackagePlus, X, Pencil, Save, ExternalLink, MessageCircle, Copy,
   CheckCircle2, XCircle, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -315,6 +315,23 @@ function OrdensPage() {
   });
   const [editSaving, setEditSaving] = useState(false);
 
+  function getPublicUrl(token: string) {
+    return `${window.location.origin}/os/${token}`;
+  }
+
+  function enviarWhatsAppOS(token: string, numero: string) {
+    const url = getPublicUrl(token);
+    const msg = encodeURIComponent(`*OS Fácil — Orçamento OS #${numero}*\n\nAcesse para visualizar e aprovar:\n${url}`);
+    window.open(`https://wa.me/?text=${msg}`, "_blank");
+  }
+
+  function copiarLinkOS(token: string) {
+    navigator.clipboard.writeText(getPublicUrl(token));
+    setConviteCopied(true);
+    toast.success("Link copiado!");
+    setTimeout(() => setConviteCopied(false), 2000);
+  }
+
   function openEdit(o: OS) {
     setEditForm({
       cliente_id: o.cliente_id ?? "",
@@ -348,6 +365,10 @@ function OrdensPage() {
       qc.invalidateQueries({ queryKey: ["ordens"] });
     }
   }
+
+  // OS criada — modal de convite
+  const [osCriada, setOsCriada] = useState<{ id: string; numero: string; token: string } | null>(null);
+  const [conviteCopied, setConviteCopied] = useState(false);
 
   // Modal Nova OS
   const [modalOpen, setModalOpen] = useState(false);
@@ -526,7 +547,17 @@ function OrdensPage() {
       qc.invalidateQueries({ queryKey: ["produtos-min"] });
       qc.invalidateQueries({ queryKey: ["produtos"] });
       setModalOpen(false);
-      navigate({ to: "/ordens/$id", params: { id: osData.id } });
+      // Busca o token público da OS criada
+      const { data: osComToken } = await supabase
+        .from("ordens_servico")
+        .select("link_publico_token, numero")
+        .eq("id", osData.id)
+        .maybeSingle();
+      if (osComToken?.link_publico_token) {
+        setOsCriada({ id: osData.id, numero: osComToken.numero, token: osComToken.link_publico_token });
+      } else {
+        navigate({ to: "/ordens/$id", params: { id: osData.id } });
+      }
     } catch (err: any) {
       toast.error(err.message ?? "Erro ao criar OS");
     } finally {
@@ -657,14 +688,24 @@ function OrdensPage() {
               >
                 <ExternalLink className="h-4 w-4" />
               </Link>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => openEdit(o)}
-                className="text-muted-foreground hover:text-foreground shrink-0"
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
+              {o.link_publico_token && (
+                <button
+                  title="Enviar pelo WhatsApp"
+                  onClick={() => enviarWhatsAppOS(o.link_publico_token!, o.numero)}
+                  className="h-9 w-9 flex items-center justify-center rounded-md text-muted-foreground hover:text-green-600 hover:bg-accent shrink-0 transition-colors"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                </button>
+              )}
+              {o.link_publico_token && (
+                <button
+                  title="Copiar link"
+                  onClick={() => copiarLinkOS(o.link_publico_token!)}
+                  className="h-9 w-9 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent shrink-0 transition-colors"
+                >
+                  <Copy className="h-4 w-4" />
+                </button>
+              )}
               <Button
                 size="icon"
                 variant="ghost"
@@ -677,6 +718,44 @@ function OrdensPage() {
           ))}
         </div>
       )}
+
+      {/* Modal Convite após criar OS */}
+      <Dialog open={!!osCriada} onOpenChange={(o) => { if (!o) { setOsCriada(null); if (osCriada) navigate({ to: "/ordens/$id", params: { id: osCriada.id } }); } }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>OS #{osCriada?.numero} criada!</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Envie o orçamento para o cliente agora ou acesse a OS para adicionar mais detalhes.
+            </p>
+            <div className="flex gap-3">
+              <button
+                title="Enviar pelo WhatsApp"
+                onClick={() => osCriada && enviarWhatsAppOS(osCriada.token, osCriada.numero)}
+                className="flex-1 flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl border border-green-500/40 text-green-600 hover:bg-green-500/10 transition-colors"
+              >
+                <MessageCircle className="h-6 w-6" />
+                <span className="text-xs font-medium">WhatsApp</span>
+              </button>
+              <button
+                title="Copiar link"
+                onClick={() => osCriada && copiarLinkOS(osCriada.token)}
+                className="flex-1 flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl border border-border hover:bg-muted transition-colors"
+              >
+                {conviteCopied ? <Check className="h-6 w-6 text-green-500" /> : <Copy className="h-6 w-6" />}
+                <span className="text-xs font-medium">{conviteCopied ? "Copiado!" : "Copiar link"}</span>
+              </button>
+            </div>
+            <button
+              onClick={() => { if (osCriada) navigate({ to: "/ordens/$id", params: { id: osCriada.id } }); setOsCriada(null); }}
+              className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Abrir OS →
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal Nova OS */}
       <Dialog open={modalOpen} onOpenChange={(o) => !creating && setModalOpen(o)}>

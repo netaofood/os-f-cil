@@ -255,6 +255,8 @@ function OrdemDetailPage() {
       qc.invalidateQueries({ queryKey: ["os", id] });
       qc.invalidateQueries({ queryKey: ["log_os", id] });
       qc.invalidateQueries({ queryKey: ["ordens"] });
+      // Abre modal de envio após salvar
+      setShareModal(true);
     }
   }
 
@@ -544,27 +546,14 @@ function OrdemDetailPage() {
 
       {/* Modal Enviar Orçamento */}
       <Dialog open={shareModal} onOpenChange={setShareModal}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Enviar orçamento ao cliente</DialogTitle>
+            <DialogTitle>Enviar orçamento OS #{os?.numero}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">
-              Compartilhe o link abaixo com o cliente. Ele poderá visualizar o orçamento e aprovar ou recusar sem precisar de login.
-            </p>
             {publicUrl ? (
               <>
-                <div className="flex gap-2">
-                  <Input value={shareMessage} readOnly className="text-xs" />
-                  <Button size="icon" variant="outline" onClick={copyLink}>
-                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-                <Button className="w-full bg-green-600 hover:bg-green-700 text-white" onClick={openWhatsApp}>
-                  <Send className="h-4 w-4 mr-2" />
-                  Enviar pelo WhatsApp
-                </Button>
-                {os.aprovacao && (
+                {os?.aprovacao && (
                   <div className={cn(
                     "flex items-center gap-2 text-sm p-3 rounded-lg",
                     os.aprovacao === "aprovada" ? "bg-green-500/10 text-green-700" : "bg-red-500/10 text-red-700"
@@ -573,16 +562,35 @@ function OrdemDetailPage() {
                     Cliente já {os.aprovacao === "aprovada" ? "aprovou" : "recusou"} este orçamento.
                   </div>
                 )}
+                <div className="flex gap-3">
+                  <button
+                    onClick={openWhatsApp}
+                    className="flex-1 flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl border border-green-500/40 text-green-600 hover:bg-green-500/10 transition-colors"
+                  >
+                    <Send className="h-6 w-6" />
+                    <span className="text-xs font-medium">WhatsApp</span>
+                  </button>
+                  <button
+                    onClick={copyLink}
+                    className="flex-1 flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl border border-border hover:bg-muted transition-colors"
+                  >
+                    {copied ? <Check className="h-6 w-6 text-green-500" /> : <Copy className="h-6 w-6" />}
+                    <span className="text-xs font-medium">{copied ? "Copiado!" : "Copiar link"}</span>
+                  </button>
+                </div>
               </>
             ) : (
               <p className="text-sm text-muted-foreground italic">
-                Link público não disponível. Atualize a página ou contate o suporte.
+                Link público não disponível.
               </p>
             )}
+            <button
+              onClick={() => setShareModal(false)}
+              className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Fechar
+            </button>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShareModal(false)}>Fechar</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AppShell>
