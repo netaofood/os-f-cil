@@ -54,7 +54,7 @@ function AuthPage() {
       } else {
         // Admin/colaborador: celular vira email fake
         const digits = identificacao.replace(/\D/g, "");
-        emailParaLogin = `${digits}@osfacil.app`;
+        emailParaLogin = `u${digits}@osfacil.app`;
       }
 
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({

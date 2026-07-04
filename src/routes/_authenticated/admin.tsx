@@ -157,9 +157,9 @@ export default function AdminPage() {
     }
     setSavingAdmin(true);
     try {
-      // Email fake baseado no celular
+      // Email fake baseado no celular — só dígitos
       const digits = adminForm.celular.replace(/\D/g, "");
-      const emailFake = `${digits}@osfacil.app`;
+      const emailFake = `u${digits}@osfacil.app`;
 
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email: emailFake,
