@@ -640,6 +640,7 @@ function OrdensPage() {
                   onChange={(id) => setNovaOS({ ...novaOS, cliente_id: id })}
                   onNovoCliente={(c) => {
                     qc.invalidateQueries({ queryKey: ["clientes-min"] });
+                    qc.setQueryData(["clientes-min"], (old: any[]) => [...(old ?? []), c]);
                     setNovaOS({ ...novaOS, cliente_id: c.id });
                   }}
                   empresaId={usuario?.empresa_id}
