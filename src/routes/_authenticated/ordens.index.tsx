@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { Tables } from "@/integrations/supabase/types";
+import { ClienteBusca } from "@/components/cliente-busca";
 
 export const Route = createFileRoute("/_authenticated/ordens/")({
   component: OrdensPage,
@@ -309,7 +310,7 @@ function OrdensPage() {
   const { data: clientes = [] } = useQuery({
     queryKey: ["clientes-min"],
     queryFn: async () => {
-      const { data } = await supabase.from("clientes").select("id,nome").order("nome");
+      const { data } = await supabase.from("clientes").select("id,nome,telefone").order("nome");
       return data ?? [];
     },
   });
@@ -630,24 +631,16 @@ function OrdensPage() {
             <div className="grid sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Cliente</Label>
-                <Select
-                  value={novaOS.cliente_id || "_none"}
-                  onValueChange={(v) =>
-                    setNovaOS({ ...novaOS, cliente_id: v === "_none" ? "" : v })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="_none">— Sem cliente —</SelectItem>
-                    {clientes.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ClienteBusca
+                  clientes={clientes}
+                  value={novaOS.cliente_id}
+                  onChange={(id) => setNovaOS({ ...novaOS, cliente_id: id })}
+                  onNovoCliente={(c) => {
+                    qc.invalidateQueries({ queryKey: ["clientes-min"] });
+                    setNovaOS({ ...novaOS, cliente_id: c.id });
+                  }}
+                  empresaId={usuario?.empresa_id}
+                />
               </div>
 
               <div className="space-y-1.5">
