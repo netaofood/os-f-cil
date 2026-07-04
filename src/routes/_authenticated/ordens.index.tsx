@@ -55,6 +55,7 @@ interface ItemRascunho {
   quantidade: number;
   preco_unitario: number;
   isNovoProduto: boolean; // será cadastrado no catálogo
+  tipo: "produto" | "servico";
 }
 
 interface ProdutoMin {
@@ -80,6 +81,8 @@ function ItemInput({ produtos, onAdd }: ItemInputProps) {
   const [preco, setPreco] = useState("");
   const [produtoSelecionadoId, setProdutoSelecionadoId] = useState<string | null>(null);
   const [showSugestoes, setShowSugestoes] = useState(false);
+  const [tipo, setTipo] = useState<"produto" | "servico">("servico");
+  const [showTipo, setShowTipo] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -120,16 +123,26 @@ function ItemInput({ produtos, onAdd }: ItemInputProps) {
     if (!desc) { inputRef.current?.focus(); return; }
     const jaExiste = produtoSelecionadoId !== null ||
       produtos.some((p) => p.nome.toLowerCase() === desc.toLowerCase());
+    if (!jaExiste && !showTipo) {
+      setShowTipo(true);
+      return;
+    }
+    const tipoFinal = jaExiste
+      ? (produtos.find(p => p.nome.toLowerCase() === desc.toLowerCase())?.tipo ?? "servico")
+      : tipo;
     onAdd({
       descricao: desc,
       quantidade: Number(quantidade) || 1,
       preco_unitario: Number(preco) || 0,
       isNovoProduto: !jaExiste,
+      tipo: tipoFinal,
     });
     setDescricao("");
     setQuantidade("1");
     setPreco("");
     setProdutoSelecionadoId(null);
+    setShowTipo(false);
+    setTipo("servico");
     setTimeout(() => inputRef.current?.focus(), 50);
   }
 
@@ -222,11 +235,61 @@ function ItemInput({ produtos, onAdd }: ItemInputProps) {
         </div>
       </div>
 
-      {produtoNaoEncontrado && (
+      {produtoNaoEncontrado && !showTipo && (
         <p className="text-xs text-muted-foreground flex items-center gap-1">
           <PackagePlus className="h-3 w-3 shrink-0" />
           Novo item — será cadastrado no catálogo ao criar a OS.
         </p>
+      )}
+
+      {showTipo && (
+        <div className="rounded-lg border border-primary/40 p-3 space-y-2 bg-muted/30">
+          <p className="text-xs font-semibold text-primary uppercase tracking-wider">
+            Este item é novo. Selecione o tipo:
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setTipo("servico")}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${
+                tipo === "servico"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border text-muted-foreground hover:border-primary/50"
+              }`}
+            >
+              Serviço
+            </button>
+            <button
+              type="button"
+              onClick={() => setTipo("produto")}
+              className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${
+                tipo === "produto"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border text-muted-foreground hover:border-primary/50"
+              }`}
+            >
+              Produto
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              title="Cancelar"
+              onClick={() => setShowTipo(false)}
+              className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              title="Confirmar"
+              onClick={handleSalvarItem}
+              className="h-8 w-8 flex items-center justify-center rounded-md text-white bg-primary hover:bg-primary/90 transition-colors"
+            >
+              <Check className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -436,7 +499,7 @@ function OrdensPage() {
             nome: item.descricao,
             preco: item.preco_unitario,
             unidade: "un",
-            tipo: "servico",
+            tipo: item.tipo ?? "servico",
             ativo: true,
           });
           if (!pErr) {
