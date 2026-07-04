@@ -454,23 +454,43 @@ export default function AdminPage() {
                                       {a.ativo ? "Ativo" : "Inativo"}
                                     </span>
                                   </div>
-                                  {/* Action buttons na ordem: Editar, Resetar senha, Enviar convite, Copiar convite, Excluir */}
-                                  <div className="flex flex-wrap gap-1.5">
-                                    <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => openEditAdmin(a)}>
-                                      <Pencil className="h-3 w-3 mr-1" /> Editar
-                                    </Button>
-                                    <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => openResetModal(a)}>
-                                      <KeyRound className="h-3 w-3 mr-1" /> Resetar senha
-                                    </Button>
-                                    <Button size="sm" variant="outline" className="text-xs h-8 text-green-600 border-green-600/40" onClick={() => abrirConvite(a, e.nome)}>
-                                      <MessageCircle className="h-3 w-3 mr-1" /> Enviar convite
-                                    </Button>
-                                    <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => { abrirConvite(a, e.nome); copiarConviteAdmin(); }}>
-                                      <Copy className="h-3 w-3 mr-1" /> Copiar convite
-                                    </Button>
-                                    <Button size="sm" variant="outline" className="text-xs h-8 text-destructive border-destructive/40" onClick={() => setDeleteAdmin(a)}>
-                                      <Trash2 className="h-3 w-3 mr-1" /> Excluir
-                                    </Button>
+                                  {/* Action buttons — ícones com tooltip */}
+                                  <div className="flex gap-1 shrink-0">
+                                    <button
+                                      title="Editar"
+                                      onClick={() => openEditAdmin(a)}
+                                      className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      title="Resetar senha"
+                                      onClick={() => openResetModal(a)}
+                                      className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                    >
+                                      <KeyRound className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      title="Enviar convite"
+                                      onClick={() => abrirConvite(a, e.nome)}
+                                      className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-green-600 hover:bg-muted transition-colors"
+                                    >
+                                      <MessageCircle className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      title="Copiar convite"
+                                      onClick={() => { abrirConvite(a, e.nome); setTimeout(copiarConviteAdmin, 100); }}
+                                      className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                                    >
+                                      <Copy className="h-4 w-4" />
+                                    </button>
+                                    <button
+                                      title="Excluir"
+                                      onClick={() => setDeleteAdmin(a)}
+                                      className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
                                   </div>
                                 </div>
                               ))}
