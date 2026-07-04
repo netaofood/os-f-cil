@@ -86,7 +86,7 @@ export default function AdminPage() {
   // Modal Pagamento
   const [pagamentoModal, setPagamentoModal] = useState(false);
   const [pagamentoEmpresa, setPagamentoEmpresa] = useState<Empresa | null>(null);
-  const [pagamentoForm, setPagamentoForm] = useState({ status_pagamento: "ativa", vencimento_plano: "", observacoes_pagamento: "" });
+  const [pagamentoForm, setPagamentoForm] = useState({ status_pagamento: "ativa", vencimento_plano: "", observacoes_pagamento: "", valor_plano: "", dia_faturamento: "" });
   const [savingPagamento, setSavingPagamento] = useState(false);
 
   // Modal Reset Senha
@@ -310,6 +310,8 @@ export default function AdminPage() {
       status_pagamento: pagamentoForm.status_pagamento,
       vencimento_plano: pagamentoForm.vencimento_plano || null,
       observacoes_pagamento: pagamentoForm.observacoes_pagamento || null,
+      valor_plano: pagamentoForm.valor_plano ? Number(pagamentoForm.valor_plano) : null,
+      dia_faturamento: pagamentoForm.dia_faturamento ? Number(pagamentoForm.dia_faturamento) : null,
     } as any).eq("id", pagamentoEmpresa.id);
     setSavingPagamento(false);
     if (error) toast.error(error.message);
@@ -321,6 +323,20 @@ export default function AdminPage() {
   }
 
   const adminsDaEmpresa = (empresaId: string) => admins.filter(a => a.empresa_id === empresaId);
+
+  function situacaoEmpresa(e: Empresa) {
+    if (e.status_pagamento === "cancelada") return { label: "Cancelada", color: "bg-gray-500" };
+    if (e.status_pagamento === "inadimplente") return { label: "Inadimplente", color: "bg-red-500" };
+    const dia = (e as any).dia_faturamento;
+    if (dia) {
+      const hoje = new Date().getDate();
+      if (hoje > dia) return { label: "Verificar pagamento", color: "bg-yellow-500" };
+    }
+    return { label: "Em dia", color: "bg-green-500" };
+  }
+
+  const brl = (n: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
   return (
     <AdminShell title="Painel Admin">
@@ -380,8 +396,18 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-2">
-                        <span className={`text-[10px] text-white px-2 py-0.5 rounded-full ${statusColor[e.status_pagamento ?? "ativa"]}`}>
-                          {statusLabel[e.status_pagamento ?? "ativa"]}
+                        {(e as any).valor_plano > 0 && (
+                          <span className="text-xs font-mono text-muted-foreground hidden sm:block">
+                            {brl(Number((e as any).valor_plano))}
+                          </span>
+                        )}
+                        {(e as any).dia_faturamento && (
+                          <span className="text-xs text-muted-foreground hidden sm:block">
+                            dia {(e as any).dia_faturamento}
+                          </span>
+                        )}
+                        <span className={`text-[10px] text-white px-2 py-0.5 rounded-full ${situacaoEmpresa(e).color}`}>
+                          {situacaoEmpresa(e).label}
                         </span>
                       </div>
                     </button>
@@ -394,7 +420,7 @@ export default function AdminPage() {
                           <Button size="sm" variant="outline" onClick={() => openEditEmpresa(e)}>
                             <Pencil className="h-3.5 w-3.5 mr-1" /> Editar empresa
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => { setPagamentoEmpresa(e); setPagamentoForm({ status_pagamento: e.status_pagamento ?? "ativa", vencimento_plano: e.vencimento_plano?.slice(0,10) ?? "", observacoes_pagamento: e.observacoes_pagamento ?? "" }); setPagamentoModal(true); }}>
+                          <Button size="sm" variant="outline" onClick={() => { setPagamentoEmpresa(e); setPagamentoForm({ status_pagamento: e.status_pagamento ?? "ativa", vencimento_plano: e.vencimento_plano?.slice(0,10) ?? "", observacoes_pagamento: e.observacoes_pagamento ?? "", valor_plano: String((e as any).valor_plano ?? ""), dia_faturamento: String((e as any).dia_faturamento ?? "") }); setPagamentoModal(true); }}>
                             <CreditCard className="h-3.5 w-3.5 mr-1" /> Pagamento
                           </Button>
                           <Button size="sm" variant="outline" className="text-primary border-primary/50" onClick={() => openAdminModal(e)}>
@@ -474,7 +500,7 @@ export default function AdminPage() {
               </div>
               <Button size="sm" variant="outline" onClick={() => {
                 setPagamentoEmpresa(e);
-                setPagamentoForm({ status_pagamento: e.status_pagamento ?? "ativa", vencimento_plano: e.vencimento_plano?.slice(0,10) ?? "", observacoes_pagamento: e.observacoes_pagamento ?? "" });
+                setPagamentoForm({ status_pagamento: e.status_pagamento ?? "ativa", vencimento_plano: e.vencimento_plano?.slice(0,10) ?? "", observacoes_pagamento: e.observacoes_pagamento ?? "", valor_plano: String((e as any).valor_plano ?? ""), dia_faturamento: String((e as any).dia_faturamento ?? "") });
                 setPagamentoModal(true);
               }}>
                 <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
@@ -641,6 +667,30 @@ export default function AdminPage() {
                   <SelectItem value="cancelada">Cancelada</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Valor do plano (R$)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={pagamentoForm.valor_plano}
+                  onChange={(e) => setPagamentoForm({ ...pagamentoForm, valor_plano: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Dia de faturamento</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="31"
+                  placeholder="Ex: 10"
+                  value={pagamentoForm.dia_faturamento}
+                  onChange={(e) => setPagamentoForm({ ...pagamentoForm, dia_faturamento: e.target.value })}
+                />
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Vencimento do plano</Label>
