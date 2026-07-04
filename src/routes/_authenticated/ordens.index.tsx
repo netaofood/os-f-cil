@@ -40,6 +40,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { Tables } from "@/integrations/supabase/types";
+import { STATUS_OS, getStatusCor } from "@/lib/status-os";
 import { ClienteBusca } from "@/components/cliente-busca";
 
 export const Route = createFileRoute("/_authenticated/ordens/")({
@@ -297,14 +298,7 @@ function OrdensPage() {
   });
   const [itensRascunho, setItensRascunho] = useState<ItemRascunho[]>([]);
 
-  const { data: statuses = [] } = useQuery({
-    queryKey: ["status_os"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("status_os").select("*").order("ordem");
-      if (error) throw error;
-      return data;
-    },
-  });
+  const statuses = STATUS_OS;
 
   const { data: clientes = [] } = useQuery({
     queryKey: ["clientes-min"],
@@ -380,8 +374,7 @@ function OrdensPage() {
     );
   });
 
-  const statusColor = (nome: string) =>
-    statuses.find((s) => s.nome === nome)?.cor ?? "#6b7280";
+  const statusColor = getStatusCor;
 
   function openModal() {
     setNovaOS({
@@ -517,7 +510,7 @@ function OrdensPage() {
           <SelectContent>
             <SelectItem value="todos">Todos os status</SelectItem>
             {statuses.map((s) => (
-              <SelectItem key={s.id} value={s.nome}>
+              <SelectItem key={s.nome} value={s.nome}>
                 {s.nome}
               </SelectItem>
             ))}
@@ -658,7 +651,7 @@ function OrdensPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {statuses.map((s) => (
-                      <SelectItem key={s.id} value={s.nome}>
+                      <SelectItem key={s.nome} value={s.nome}>
                         {s.nome}
                       </SelectItem>
                     ))}
@@ -827,7 +820,7 @@ function OrdensPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {statuses.map((s) => (
-                      <SelectItem key={s.id} value={s.nome}>
+                      <SelectItem key={s.nome} value={s.nome}>
                         {s.nome}
                       </SelectItem>
                     ))}

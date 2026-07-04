@@ -21,6 +21,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { ItemOSForm } from "@/components/item-os-form";
+import { STATUS_OS, getStatusCor } from "@/lib/status-os";
 import { cn } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -176,13 +177,7 @@ function OrdemDetailPage() {
     },
   });
 
-  const { data: statuses = [] } = useQuery({
-    queryKey: ["status_os"],
-    queryFn: async () => {
-      const { data } = await supabase.from("status_os").select("*").order("ordem");
-      return data ?? [];
-    },
-  });
+  const statuses = STATUS_OS;
 
   const { data: formas = [] } = useQuery({
     queryKey: ["formas_pagamento"],
@@ -298,7 +293,7 @@ function OrdemDetailPage() {
 
 
   const clienteNome = clientes.find((c) => c.id === os?.cliente_id)?.nome ?? "Sem cliente";
-  const statusCor = statuses.find((s) => s.nome === os?.status)?.cor ?? "#6b7280";
+  const statusCor = getStatusCor(os?.status ?? "");
 
   const aprovacaoIcon = {
     aprovada: <CheckCircle2 className="h-4 w-4 text-green-500" />,
@@ -338,7 +333,7 @@ function OrdemDetailPage() {
           const ativo = os.status === s.nome;
           return (
             <button
-              key={s.id}
+              key={s.nome}
               onClick={() => handleStatusRapido(s.nome)}
               className={cn(
                 "flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full border transition-all",
