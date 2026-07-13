@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, Loader2, Receipt, Trash2, MessageCircle, Copy, Check, ExternalLink } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
@@ -163,13 +164,14 @@ function FaturasPage() {
                 </span>
               </div>
               <div className="flex gap-1 shrink-0">
-                <a
-                  href={`/faturas/${f.id}`}
+                <Link
+                  to="/faturas/$id"
+                  params={{ id: f.id }}
                   title="Abrir fatura"
                   className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >
                   <ExternalLink className="h-4 w-4" />
-                </a>
+                </Link>
                 <button
                   title="Enviar pelo WhatsApp"
                   onClick={() => enviarWhatsApp(f)}
