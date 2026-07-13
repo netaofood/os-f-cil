@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Loader2, Receipt, Trash2, MessageCircle, Copy, Check } from "lucide-react";
+import { Plus, Search, Loader2, Receipt, Trash2, MessageCircle, Copy, Check, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
@@ -145,10 +145,7 @@ function FaturasPage() {
               key={f.id}
               className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
             >
-              <a
-                href={`/faturas/${f.id}`}
-                className="flex-1 min-w-0 flex items-center gap-3"
-              >
+              <div className="flex-1 min-w-0 flex items-center gap-3">
                 <div className="font-mono text-sm font-semibold w-20 shrink-0">{f.numero}</div>
                 <div className="min-w-0 flex-1">
                   <div className="font-medium truncate">
@@ -164,8 +161,15 @@ function FaturasPage() {
                 >
                   {f.status}
                 </span>
-              </a>
+              </div>
               <div className="flex gap-1 shrink-0">
+                <a
+                  href={`/faturas/${f.id}`}
+                  title="Abrir fatura"
+                  className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
                 <button
                   title="Enviar pelo WhatsApp"
                   onClick={() => enviarWhatsApp(f)}
