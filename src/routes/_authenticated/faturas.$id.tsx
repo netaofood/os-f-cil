@@ -45,7 +45,7 @@ function FaturaDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("faturas")
-        .select("*, empresa:empresas(*), cliente:clientes(*)")
+        .select("*, empresa:empresas(*), cliente:clientes(*), aceita_em, aceita_assinatura_url")
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
@@ -53,11 +53,14 @@ function FaturaDetailPage() {
     },
   });
 
-  async function updateStatus(status: Fatura["status"]) {
+  async function updateStatus(status: "pendente" | "aceita" | "pago" | "vencido" | "cancelado") {
     setUpdating(true);
     const { error } = await supabase
       .from("faturas")
-      .update({ status, pago_em: status === "pago" ? new Date().toISOString() : null })
+      .update({
+        status: status as any,
+        pago_em: status === "pago" ? new Date().toISOString() : null,
+      })
       .eq("id", id);
     setUpdating(false);
     if (error) toast.error(error.message);
