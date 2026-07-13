@@ -44,7 +44,12 @@ export const signFaturaByToken = createServerFn({ method: "POST" })
     const { data: pub } = supabaseAdmin.storage.from("assinaturas").getPublicUrl(path);
     const { error: e2 } = await supabaseAdmin
       .from("faturas")
-      .update({ assinatura_url: pub.publicUrl, status: "pago", pago_em: new Date().toISOString() })
+      .update({
+        assinatura_url: pub.publicUrl,
+        status: "aceita",
+        aceita_em: new Date().toISOString(),
+        aceita_assinatura_url: pub.publicUrl,
+      })
       .eq("id", fatura.id);
     if (e2) throw new Error(e2.message);
     return { ok: true, url: pub.publicUrl };

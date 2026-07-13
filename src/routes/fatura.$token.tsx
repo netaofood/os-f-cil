@@ -74,7 +74,7 @@ function PublicFaturaPage() {
   const [signing, setSigning] = useState(false);
 
   useEffect(() => {
-    if (!canvasRef.current || data?.status === "pago") return;
+    if (!canvasRef.current || data?.status === "aceita" || data?.status === "pago") return;
     const c = canvasRef.current;
     const resize = () => {
       const ratio = window.devicePixelRatio || 1;
@@ -172,8 +172,8 @@ function PublicFaturaPage() {
                   (data.cliente as Tables<"clientes"> | null)?.nome ??
                   "Cliente"}
               </span>
-              <Badge variant={data.status === "pago" ? "default" : "outline"} className="capitalize">
-                {data.status}
+              <Badge variant={data.status === "aceita" || data.status === "pago" ? "default" : "outline"} className="capitalize">
+                {data.status === "aceita" ? "Aceita ✓" : data.status}
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -223,12 +223,12 @@ function PublicFaturaPage() {
           </Card>
         )}
 
-        {data.status === "pago" && data.assinatura_url ? (
+        {(data.status === "aceita" || data.status === "pago") && data.assinatura_url ? (
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
-                Fatura assinada
+                Fatura aceita pelo cliente
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -237,9 +237,9 @@ function PublicFaturaPage() {
                 alt="Assinatura"
                 className="max-h-32 border border-border rounded bg-white"
               />
-              {data.pago_em && (
+              {(data as any).aceita_em && (
                 <div className="text-xs text-muted-foreground mt-2">
-                  {new Date(data.pago_em).toLocaleString("pt-BR")}
+                  Aceita em {new Date((data as any).aceita_em).toLocaleString("pt-BR")}
                 </div>
               )}
             </CardContent>

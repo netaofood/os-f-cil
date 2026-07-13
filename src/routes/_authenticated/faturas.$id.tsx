@@ -30,7 +30,7 @@ const brl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
 const statusColor: Record<string, string> = {
-  pendente: "#f59e0b", pago: "#10b981", vencido: "#ef4444", cancelado: "#6b7280",
+  pendente: "#f59e0b", aceita: "#3b82f6", pago: "#10b981", vencido: "#ef4444", cancelado: "#6b7280",
 };
 
 function FaturaDetailPage() {
@@ -215,6 +215,29 @@ function FaturaDetailPage() {
         {/* Painel de ações */}
         <Card className="h-fit">
           <CardContent className="pt-5 space-y-4">
+            {/* Indicador de vencimento */}
+            {data.vencimento && (() => {
+              const venc = new Date(data.vencimento);
+              const hoje = new Date();
+              hoje.setHours(0,0,0,0);
+              venc.setHours(0,0,0,0);
+              const diff = Math.ceil((venc.getTime() - hoje.getTime()) / (1000*60*60*24));
+              const cor = diff < 0 ? "text-red-600 bg-red-50 dark:bg-red-950" : diff === 0 ? "text-yellow-600 bg-yellow-50 dark:bg-yellow-950" : "text-green-600 bg-green-50 dark:bg-green-950";
+              const label = diff < 0 ? `Vencida há ${Math.abs(diff)} dias` : diff === 0 ? "Vence hoje" : `Vence em ${diff} dias`;
+              return (
+                <div className={`text-xs font-medium px-3 py-2 rounded-lg ${cor}`}>
+                  {label} · {new Date(data.vencimento).toLocaleDateString("pt-BR")}
+                </div>
+              );
+            })()}
+
+            {/* Aceite do cliente */}
+            {(data as any).aceita_em && (
+              <div className="text-xs bg-green-50 dark:bg-green-950 text-green-700 px-3 py-2 rounded-lg">
+                ✓ Aceita pelo cliente em {new Date((data as any).aceita_em).toLocaleString("pt-BR")}
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Status</p>
               <Select
@@ -227,6 +250,7 @@ function FaturaDetailPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pendente">Pendente</SelectItem>
+                  <SelectItem value="aceita">Aceita pelo cliente</SelectItem>
                   <SelectItem value="pago">Pago</SelectItem>
                   <SelectItem value="vencido">Vencido</SelectItem>
                   <SelectItem value="cancelado">Cancelado</SelectItem>
