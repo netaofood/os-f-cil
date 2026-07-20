@@ -19,12 +19,26 @@ export function BottomNav() {
     async function loadPerfil() {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session?.user) return;
+      
+      // Tenta ler da tabela primeiro
       const { data } = await supabase
         .from("usuarios")
         .select("perfil")
         .eq("auth_user_id", sessionData.session.user.id)
         .maybeSingle();
-      if (data?.perfil) setPerfil(data.perfil);
+      
+      if (data?.perfil) {
+        setPerfil(data.perfil);
+      } else {
+        // Fallback: usa email para determinar perfil
+        const email = sessionData.session.user.email ?? "";
+        if (email === "netaosushibar@gmail.com") {
+          setPerfil("super_admin");
+        } else if (email.endsWith("@osfacil.app")) {
+          // celular = colaborador ou admin — mostra tudo por segurança até carregar
+          setPerfil("admin");
+        }
+      }
     }
     loadPerfil();
   }, []);

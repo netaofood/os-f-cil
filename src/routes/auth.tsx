@@ -76,6 +76,8 @@ function AuthPage() {
 
       if (u?.perfil === "super_admin") {
         window.location.href = "/admin";
+      } else if (u?.perfil === "colaborador") {
+        window.location.href = "/ordens";
       } else {
         window.location.href = "/dashboard";
       }
