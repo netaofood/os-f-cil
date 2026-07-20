@@ -193,7 +193,7 @@ function ConfigPage() {
 
   function copiarConvite() {
     if (!convite) return;
-    const texto = `*OS Fácil — Dados de Acesso*\n\nNome: ${convite.nome}\nCelular: ${convite.celular}\nSenha: ${convite.senha}\n\nAcesse: https://os-facil-sepia.vercel.app`;
+    const texto = `*OS Fácil — Dados de Acesso*\n\nNome: ${convite.nome}\nCelular: ${convite.celular}\nSenha: ${convite.senha}\n\nAcesse: https://osfacil.netao.app.br`;
     navigator.clipboard.writeText(texto);
     setCopied(true);
     toast.success("Dados copiados!");
@@ -202,7 +202,7 @@ function ConfigPage() {
 
   function whatsappConvite() {
     if (!convite) return;
-    const texto = encodeURIComponent(`*OS Fácil — Dados de Acesso*\n\nNome: ${convite.nome}\nCelular: ${convite.celular}\nSenha: ${convite.senha}\n\nAcesse: https://os-facil-sepia.vercel.app`);
+    const texto = encodeURIComponent(`*OS Fácil — Dados de Acesso*\n\nNome: ${convite.nome}\nCelular: ${convite.celular}\nSenha: ${convite.senha}\n\nAcesse: https://osfacil.netao.app.br`);
     const numero = convite.celular.replace(/\D/g, "");
     window.open(`https://wa.me/55${numero}?text=${texto}`, "_blank");
   }
@@ -449,7 +449,7 @@ function ConfigPage() {
                 <p><strong>Nome:</strong> {convite.nome}</p>
                 <p><strong>Celular:</strong> {convite.celular}</p>
                 <p><strong>Senha:</strong> {convite.senha}</p>
-                <p className="text-xs text-muted-foreground mt-2">https://os-facil-sepia.vercel.app</p>
+                <p className="text-xs text-muted-foreground mt-2">https://osfacil.netao.app.br</p>
               </div>
               <div className="flex gap-3">
                 <button onClick={whatsappConvite}
