@@ -142,73 +142,94 @@ function PublicOSPage() {
       <div className="max-w-2xl mx-auto space-y-4">
 
         {/* Cabeçalho empresa */}
-        <div className="rounded-lg p-5 text-white shadow flex items-center gap-4" style={{ backgroundColor: cor }}>
-          {empresa?.logo_url && (
-            <img
-              src={empresa.logo_url}
-              alt={empresa?.nome ?? "Logo"}
-              className="h-14 w-14 object-contain rounded bg-white/90 p-1 shrink-0"
-            />
-          )}
-          <div className="min-w-0">
-            <div className="text-xs opacity-80 truncate">{empresa?.nome}</div>
-            <h1 className="text-xl font-bold mt-0.5">Orçamento #{data.numero}</h1>
-            <div className="text-xs opacity-80 mt-1">
-              {[empresa?.cidade, empresa?.estado].filter(Boolean).join("/")}
-              {empresa?.telefone && ` · ${empresa.telefone}`}
+        <div className="rounded-xl overflow-hidden shadow-lg" style={{ backgroundColor: cor }}>
+          <div className="p-5 flex items-center gap-4">
+            {empresa?.logo_url ? (
+              <img src={empresa.logo_url} alt={empresa?.nome ?? "Logo"}
+                className="h-16 w-16 object-contain rounded-lg bg-white/95 p-1.5 shrink-0 shadow" />
+            ) : (
+              <div className="h-16 w-16 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                <span className="text-2xl font-black text-white">{empresa?.nome?.[0]}</span>
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-white/80 text-xs font-medium uppercase tracking-wider truncate">{empresa?.nome}</p>
+              <h1 className="text-2xl font-black text-white mt-0.5">Orçamento #{data.numero}</h1>
+              <div className="flex flex-wrap gap-2 mt-1.5 text-xs text-white/70">
+                {empresa?.telefone && <span>{empresa.telefone}</span>}
+                {empresa?.email && <span>{empresa.email}</span>}
+                {[empresa?.cidade, empresa?.estado].filter(Boolean).length > 0 && (
+                  <span>{[empresa?.cidade, empresa?.estado].filter(Boolean).join(" / ")}</span>
+                )}
+              </div>
             </div>
+          </div>
+          <div className="bg-black/20 px-5 py-2 flex items-center justify-between text-xs text-white/80">
+            <span>Emitido em {new Date(data.created_at).toLocaleDateString("pt-BR")}</span>
+            {data.aprovacao && (
+              <span className={`font-semibold ${data.aprovacao === "aprovada" ? "text-green-300" : "text-red-300"}`}>
+                {data.aprovacao === "aprovada" ? "✓ Aprovado" : "✗ Recusado"}
+              </span>
+            )}
           </div>
         </div>
 
 
         {/* Dados */}
-        <Card>
-          <CardContent className="pt-5 space-y-3 text-sm">
-            <div className="grid grid-cols-2 gap-3">
+        <Card className="overflow-hidden">
+          <div className="bg-muted/50 px-5 py-3 border-b border-border">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados do orçamento</p>
+          </div>
+          <CardContent className="pt-4 space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground mb-0.5">Cliente</p>
-                <p className="font-medium">{cliente?.nome ?? "—"}</p>
+                <p className="font-semibold">{cliente?.nome ?? "—"}</p>
+                {cliente?.telefone && <p className="text-xs text-muted-foreground">{cliente.telefone}</p>}
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-0.5">Data</p>
-                <p>{new Date(data.created_at).toLocaleDateString("pt-BR")}</p>
+                <p className="font-semibold">{new Date(data.created_at).toLocaleDateString("pt-BR")}</p>
               </div>
             </div>
             {data.diagnostico && (
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Descrição</p>
-                <p className="whitespace-pre-wrap">{data.diagnostico}</p>
+              <div className="pt-2 border-t border-border/50">
+                <p className="text-xs text-muted-foreground mb-1">Descrição do serviço</p>
+                <p className="whitespace-pre-wrap text-sm">{data.diagnostico}</p>
               </div>
             )}
             {data.observacoes && (
-              <div>
-                <p className="text-xs text-muted-foreground mb-0.5">Observações</p>
-                <p className="whitespace-pre-wrap">{data.observacoes}</p>
+              <div className="pt-2 border-t border-border/50">
+                <p className="text-xs text-muted-foreground mb-1">Observações</p>
+                <p className="whitespace-pre-wrap text-sm">{data.observacoes}</p>
               </div>
             )}
           </CardContent>
         </Card>
 
         {/* Itens */}
-        <Card>
-          <CardContent className="pt-5">
-            <p className="font-semibold text-sm mb-3">Itens do orçamento</p>
+        <Card className="overflow-hidden">
+          <div className="bg-muted/50 px-5 py-3 border-b border-border flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Itens do orçamento</p>
+            <p className="text-xs text-muted-foreground">{itens.length} item(s)</p>
+          </div>
+          <CardContent className="pt-0 px-0">
             {itens.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sem itens.</p>
+              <p className="text-sm text-muted-foreground p-5">Sem itens.</p>
             ) : (
-              <div className="space-y-0.5">
+              <div>
                 {itens.map((it, i) => (
-                  <div key={it.id ?? i} className="flex items-center text-sm border-b border-border/50 py-2 gap-2">
+                  <div key={it.id ?? i} className="flex items-center text-sm border-b border-border/50 px-5 py-3 gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="truncate font-medium">{it.descricao}</div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="font-medium">{it.descricao}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">
                         {Number(it.quantidade)} × {brl(Number(it.preco_unitario))}
                       </div>
                     </div>
-                    <div className="font-medium tabular-nums shrink-0">{brl(Number(it.total))}</div>
+                    <div className="font-semibold tabular-nums shrink-0 text-right">{brl(Number(it.total))}</div>
                   </div>
                 ))}
-                <div className="flex justify-between pt-3 font-bold text-base">
+                <div className="flex justify-between px-5 py-4 font-black text-lg bg-muted/30">
                   <span>Total</span>
                   <span>{brl(Number(data.total))}</span>
                 </div>
