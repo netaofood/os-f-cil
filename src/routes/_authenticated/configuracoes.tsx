@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Loader2, Upload, Trash2, ImageIcon, ChevronRight,
   Plus, KeyRound, ToggleLeft, ToggleRight, RefreshCw,
-  MessageCircle, Copy, Check, X, Save,
+  MessageCircle, Copy, Check, Save,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { criarColaborador } from "@/lib/admin.functions";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -137,6 +139,8 @@ function ConfigPage() {
     setNovoModal(true);
   }
 
+  const criarColaboradorFn = useServerFn(criarColaborador);
+
   async function handleSalvarColab() {
     if (!novoForm.nome.trim() || !novoForm.celular.trim()) {
       toast.error("Nome e celular são obrigatórios"); return;
@@ -144,30 +148,14 @@ function ConfigPage() {
     if (!usuario?.empresa_id) { toast.error("Empresa não identificada"); return; }
     setSalvandoNovo(true);
     try {
-      const digits = novoForm.celular.replace(/\D/g, "");
-      const emailFake = `u${digits}@osfacil.app`;
-      const { data: authData, error: authErr } = await supabase.auth.signUp({
-        email: emailFake, password: novoForm.senha,
-        options: { data: { nome: novoForm.nome.trim(), celular: novoForm.celular } },
-      });
-      if (authErr) throw authErr;
-      if (!authData.user) throw new Error("Usuário não criado");
-      await new Promise(r => setTimeout(r, 2000));
-      let updErr = null;
-      for (let i = 0; i < 3; i++) {
-        const { error } = await supabase.from("usuarios").update({
-          empresa_id: usuario.empresa_id,
-          perfil: "colaborador",
-          celular: novoForm.celular,
+      await criarColaboradorFn({
+        data: {
           nome: novoForm.nome.trim(),
-        }).eq("auth_user_id", authData.user.id);
-        updErr = error;
-        if (!error) break;
-        await new Promise(r => setTimeout(r, 1000));
-      }
-      if (updErr) throw updErr;
-      // Confirma email fake
-      await supabase.rpc("confirmar_usuario_por_email" as any, { p_email: emailFake });
+          celular: novoForm.celular,
+          senha: novoForm.senha,
+          empresa_id: usuario.empresa_id,
+        },
+      });
       setConvite({ nome: novoForm.nome.trim(), celular: novoForm.celular, senha: novoForm.senha });
       setNovoModal(false);
       setConviteModal(true);
