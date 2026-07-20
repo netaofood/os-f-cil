@@ -41,6 +41,7 @@ export function AdminShell({ title, children }: { title: string; children: React
 
   async function handleLogout() {
     await supabase.auth.signOut();
+    localStorage.removeItem('perfil');
     toast.success("Até logo!");
     window.location.href = "/auth";
   }

@@ -12,32 +12,27 @@ const allItems = [
 ];
 
 export function BottomNav() {
-  const [perfil, setPerfil] = useState<string | null>(null);
+  const [perfil, setPerfil] = useState<string>(() => {
+    // Lê do localStorage imediatamente — sem esperar o banco
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("perfil") ?? "admin";
+    }
+    return "admin";
+  });
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
 
   useEffect(() => {
     async function loadPerfil() {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session?.user) return;
-      
-      // Tenta ler da tabela primeiro
       const { data } = await supabase
         .from("usuarios")
         .select("perfil")
         .eq("auth_user_id", sessionData.session.user.id)
         .maybeSingle();
-      
       if (data?.perfil) {
+        localStorage.setItem("perfil", data.perfil);
         setPerfil(data.perfil);
-      } else {
-        // Fallback: usa email para determinar perfil
-        const email = sessionData.session.user.email ?? "";
-        if (email === "netaosushibar@gmail.com") {
-          setPerfil("super_admin");
-        } else if (email.endsWith("@osfacil.app")) {
-          // celular = colaborador ou admin — mostra tudo por segurança até carregar
-          setPerfil("admin");
-        }
       }
     }
     loadPerfil();

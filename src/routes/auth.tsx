@@ -75,10 +75,13 @@ function AuthPage() {
         .maybeSingle();
 
       if (u?.perfil === "super_admin") {
+        localStorage.setItem("perfil", "super_admin");
         window.location.href = "/admin";
       } else if (u?.perfil === "colaborador") {
+        localStorage.setItem("perfil", "colaborador");
         window.location.href = "/ordens";
       } else {
+        localStorage.setItem("perfil", "admin");
         window.location.href = "/dashboard";
       }
 

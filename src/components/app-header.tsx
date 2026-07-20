@@ -15,6 +15,7 @@ export function AppHeader({ onToggleTheme, isDark }: Props) {
 
   async function handleLogout() {
     await supabase.auth.signOut();
+    localStorage.removeItem('perfil');
     toast.success("Até logo!");
     window.location.href = "/auth";
   }
