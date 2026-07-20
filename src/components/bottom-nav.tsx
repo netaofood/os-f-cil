@@ -11,12 +11,14 @@ const navItems = [
 ];
 
 export function BottomNav() {
-  const { data: usuario } = useCurrentUsuario();
+  const { data: usuario, isLoading } = useCurrentUsuario();
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
 
-  const items = usuario?.perfil === "colaborador"
-    ? navItems.filter((i) => i.href !== "/configuracoes")
-    : navItems;
+  const items = isLoading
+    ? navItems.filter((i) => i.href !== "/configuracoes") // esconde enquanto carrega
+    : usuario?.perfil === "colaborador"
+      ? navItems.filter((i) => i.href !== "/configuracoes" && i.href !== "/faturas")
+      : navItems;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border h-16">
