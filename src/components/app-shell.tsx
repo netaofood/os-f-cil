@@ -5,25 +5,32 @@ import { AppHeader } from "@/components/app-header";
 import { BottomNav } from "@/components/bottom-nav";
 
 export function AppShell({ title, children }: { title: string; children: ReactNode }) {
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(() => {
+    // Se tem perfil no localStorage, assume logado e mostra imediatamente
+    if (typeof window !== "undefined") {
+      return !!localStorage.getItem("perfil");
+    }
+    return false;
+  });
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
-    // Verificar sessão
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        window.location.href = "/auth";
-        return;
-      }
-      setReady(true);
-    });
-
-    // Carregar preferência de tema
+    // Aplica tema imediatamente
     const saved = localStorage.getItem("theme");
     if (saved === "dark" || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
       document.documentElement.classList.add("dark");
       setIsDark(true);
     }
+
+    // Verifica sessão em background
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        localStorage.removeItem("perfil");
+        window.location.href = "/auth";
+        return;
+      }
+      setReady(true);
+    });
   }, []);
 
   function toggleTheme() {
