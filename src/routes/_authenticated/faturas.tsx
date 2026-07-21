@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Loader2, Receipt, Trash2, MessageCircle, Copy, Check, ExternalLink } from "lucide-react";
+import {
+  Plus, Search, Loader2, Receipt, Trash2,
+  MessageCircle, Copy, Check, CreditCard, CheckCircle2, XCircle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/app-shell";
@@ -9,7 +12,7 @@ import { useCurrentUsuario } from "@/hooks/use-current-user";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -32,7 +35,19 @@ const brl = (n: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
 const statusColor: Record<string, string> = {
-  pendente: "#f59e0b", pago: "#10b981", vencido: "#ef4444", cancelado: "#6b7280",
+  pendente: "#f59e0b",
+  aceita: "#3b82f6",
+  pago: "#10b981",
+  vencido: "#ef4444",
+  cancelado: "#6b7280",
+};
+
+const statusLabel: Record<string, string> = {
+  pendente: "Pendente",
+  aceita: "Aceita",
+  pago: "Pago",
+  vencido: "Vencido",
+  cancelado: "Cancelado",
 };
 
 function FaturasPage() {
@@ -42,6 +57,8 @@ function FaturasPage() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [newOpen, setNewOpen] = useState(false);
   const [toDelete, setToDelete] = useState<Fatura | null>(null);
+  const [gestaoFatura, setGestaoFatura] = useState<Fatura | null>(null);
+  const [updating, setUpdating] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
 
   const { data: faturas = [], isLoading } = useQuery({
@@ -75,6 +92,23 @@ function FaturasPage() {
     setToDelete(null);
   }
 
+  async function updateStatus(fatura: Fatura, status: string) {
+    setUpdating(true);
+    const { error } = await supabase
+      .from("faturas")
+      .update({
+        status: status as any,
+        pago_em: status === "pago" ? new Date().toISOString() : null,
+      })
+      .eq("id", fatura.id);
+    setUpdating(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Status atualizado!");
+    qc.invalidateQueries({ queryKey: ["faturas"] });
+    // Atualiza o modal com os novos dados
+    setGestaoFatura(prev => prev ? { ...prev, status: status as any } : null);
+  }
+
   function getPublicUrl(token: string) {
     return `${window.location.origin}/fatura/${token}`;
   }
@@ -92,6 +126,20 @@ function FaturasPage() {
     const url = getPublicUrl(f.link_publico_token);
     const msg = encodeURIComponent(`*OS Fácil — Fatura ${f.numero}*\n\nAcesse para visualizar:\n${url}`);
     window.open(`https://wa.me/?text=${msg}`, "_blank");
+  }
+
+  // Indicador de vencimento
+  function vencimentoInfo(f: Fatura) {
+    if (!f.vencimento || f.status === "pago" || f.status === "cancelado") return null;
+    const venc = new Date(f.vencimento);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    venc.setHours(0, 0, 0, 0);
+    const diff = Math.ceil((venc.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+    if (diff < 0) return { label: `Vencida há ${Math.abs(diff)}d`, cor: "text-red-500" };
+    if (diff === 0) return { label: "Vence hoje", cor: "text-yellow-500" };
+    if (diff <= 3) return { label: `Vence em ${diff}d`, cor: "text-yellow-500" };
+    return null;
   }
 
   return (
@@ -113,6 +161,7 @@ function FaturasPage() {
           <SelectContent>
             <SelectItem value="todos">Todos</SelectItem>
             <SelectItem value="pendente">Pendentes</SelectItem>
+            <SelectItem value="aceita">Aceitas</SelectItem>
             <SelectItem value="pago">Pagas</SelectItem>
             <SelectItem value="vencido">Vencidas</SelectItem>
             <SelectItem value="cancelado">Canceladas</SelectItem>
@@ -136,76 +185,177 @@ function FaturasPage() {
         <div className="text-center py-12 text-muted-foreground text-sm flex flex-col items-center gap-2">
           <Receipt className="h-8 w-8 opacity-40" />
           {faturas.length === 0
-            ? "Nenhuma fatura ainda. Gere uma a partir de uma OS Concluída."
+            ? "Nenhuma fatura. Gere uma a partir de uma OS Concluída."
             : "Nenhum resultado."}
         </div>
       ) : (
         <div className="grid gap-2">
-          {filtered.map((f) => (
-            <div
-              key={f.id}
-              className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3"
-            >
-              <div className="flex-1 min-w-0 flex items-center gap-3">
-                <div className="font-mono text-sm font-semibold w-20 shrink-0">{f.numero}</div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium truncate">
-                    {f.cliente?.nome ?? f.cliente_nome ?? "Sem cliente"}
+          {filtered.map((f) => {
+            const venc = vencimentoInfo(f);
+            return (
+              <div key={f.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-sm font-semibold w-20 shrink-0">{f.numero}</span>
+                    <span className="font-medium truncate">{f.cliente?.nome ?? f.cliente_nome ?? "Sem cliente"}</span>
                   </div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {new Date(f.created_at).toLocaleDateString("pt-BR")} · {brl(Number(f.total))}
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(f.created_at).toLocaleDateString("pt-BR")} · {brl(Number(f.total))}
+                    </span>
+                    <span
+                      className="text-[10px] font-medium px-2 py-0.5 rounded-full text-white"
+                      style={{ backgroundColor: statusColor[f.status] ?? "#6b7280" }}
+                    >
+                      {statusLabel[f.status] ?? f.status}
+                    </span>
+                    {venc && (
+                      <span className={`text-[10px] font-medium ${venc.cor}`}>{venc.label}</span>
+                    )}
                   </div>
                 </div>
-                <span
-                  className="text-xs font-medium px-2 py-1 rounded-full text-white shrink-0 capitalize"
-                  style={{ backgroundColor: statusColor[f.status] ?? "#6b7280" }}
-                >
-                  {f.status}
-                </span>
+                <div className="flex gap-1 shrink-0">
+                  <button
+                    title="Gestão / Dar baixa"
+                    onClick={() => setGestaoFatura(f)}
+                    className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+                  >
+                    <CreditCard className="h-4 w-4" />
+                  </button>
+                  <button
+                    title="Enviar pelo WhatsApp"
+                    onClick={() => enviarWhatsApp(f)}
+                    className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-green-600 hover:bg-muted transition-colors"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                  </button>
+                  <button
+                    title="Copiar link"
+                    onClick={() => copiarLink(f)}
+                    className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  >
+                    {copied === f.id ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  </button>
+                  <button
+                    title="Excluir fatura"
+                    onClick={() => setToDelete(f)}
+                    className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-1 shrink-0">
-                <Link
-                  to="/faturas/$id"
-                  params={{ id: f.id }}
-                  title="Abrir fatura"
-                  className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Link>
-                <button
-                  title="Enviar pelo WhatsApp"
-                  onClick={() => enviarWhatsApp(f)}
-                  className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-green-600 hover:bg-muted transition-colors"
-                >
-                  <MessageCircle className="h-4 w-4" />
-                </button>
-                <button
-                  title="Copiar link"
-                  onClick={() => copiarLink(f)}
-                  className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  {copied === f.id ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                </button>
-                <button
-                  title="Excluir fatura"
-                  onClick={() => setToDelete(f)}
-                  className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-muted transition-colors"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
+
+      {/* Modal de Gestão da Fatura */}
+      <Dialog open={!!gestaoFatura} onOpenChange={(o) => !o && setGestaoFatura(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Fatura {gestaoFatura?.numero}</DialogTitle>
+          </DialogHeader>
+          {gestaoFatura && (
+            <div className="space-y-4 py-2">
+              {/* Resumo */}
+              <div className="rounded-lg bg-muted p-4 space-y-1.5 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Cliente</span>
+                  <span className="font-medium">{gestaoFatura.cliente?.nome ?? gestaoFatura.cliente_nome ?? "—"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total</span>
+                  <span className="font-bold font-mono">{brl(Number(gestaoFatura.total))}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Status</span>
+                  <span
+                    className="text-xs font-medium px-2 py-0.5 rounded-full text-white"
+                    style={{ backgroundColor: statusColor[gestaoFatura.status] ?? "#6b7280" }}
+                  >
+                    {statusLabel[gestaoFatura.status] ?? gestaoFatura.status}
+                  </span>
+                </div>
+                {gestaoFatura.vencimento && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Vencimento</span>
+                    <span>{new Date(gestaoFatura.vencimento).toLocaleDateString("pt-BR")}</span>
+                  </div>
+                )}
+                {(gestaoFatura as any).aceita_em && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Aceita em</span>
+                    <span className="text-green-600 text-xs">{new Date((gestaoFatura as any).aceita_em).toLocaleDateString("pt-BR")}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Ações de status */}
+              {gestaoFatura.status !== "pago" && gestaoFatura.status !== "cancelado" && (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Dar baixa</p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => updateStatus(gestaoFatura, "pago")}
+                      disabled={updating}
+                      className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border border-green-500/40 text-green-600 hover:bg-green-500/10 disabled:opacity-50 transition-colors"
+                    >
+                      <CheckCircle2 className="h-5 w-5" />
+                      <span className="text-xs font-medium">Marcar pago</span>
+                    </button>
+                    <button
+                      onClick={() => updateStatus(gestaoFatura, "cancelado")}
+                      disabled={updating}
+                      className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border border-destructive/40 text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
+                    >
+                      <XCircle className="h-5 w-5" />
+                      <span className="text-xs font-medium">Cancelar</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Enviar */}
+              <div className="space-y-2 pt-1 border-t border-border">
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Enviar fatura</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => enviarWhatsApp(gestaoFatura)}
+                    className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border border-green-500/40 text-green-600 hover:bg-green-500/10 transition-colors"
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                    <span className="text-xs font-medium">WhatsApp</span>
+                  </button>
+                  <button
+                    onClick={() => copiarLink(gestaoFatura)}
+                    className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border border-border hover:bg-muted transition-colors"
+                  >
+                    {copied === gestaoFatura.id ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
+                    <span className="text-xs font-medium">{copied === gestaoFatura.id ? "Copiado!" : "Copiar"}</span>
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setGestaoFatura(null)}
+                className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Fechar
+              </button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <NovaFaturaDialog
         open={newOpen}
         onOpenChange={setNewOpen}
         empresaId={usuario?.empresa_id ?? null}
-        onCreated={(id) => {
+        onCreated={() => {
           qc.invalidateQueries({ queryKey: ["faturas"] });
-          window.location.href = `/faturas/${id}`;
+          setNewOpen(false);
+          toast.success("Fatura criada!");
         }}
       />
 
@@ -231,7 +381,7 @@ function NovaFaturaDialog({
   open: boolean;
   onOpenChange: (o: boolean) => void;
   empresaId: string | null;
-  onCreated: (id: string) => void;
+  onCreated: () => void;
 }) {
   const [saving, setSaving] = useState(false);
   const [osId, setOsId] = useState<string>("_none");
@@ -244,7 +394,7 @@ function NovaFaturaDialog({
       const { data } = await supabase
         .from("ordens_servico")
         .select("id, numero, total, status, cliente_id, cliente:clientes(nome)")
-        .eq("status", "Concluída") // Apenas OS Concluídas
+        .eq("status", "Concluída")
         .order("created_at", { ascending: false })
         .limit(100);
       return (data ?? []) as Array<{
@@ -255,7 +405,7 @@ function NovaFaturaDialog({
     },
   });
 
-  const brl = (n: number) =>
+  const brlFmt = (n: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
 
   async function handleCreate() {
@@ -263,9 +413,7 @@ function NovaFaturaDialog({
     if (osId === "_none") { toast.error("Selecione uma OS Concluída"); return; }
     setSaving(true);
 
-    const { data: numero, error: e1 } = await supabase.rpc("next_fatura_numero", {
-      _empresa_id: empresaId,
-    });
+    const { data: numero, error: e1 } = await supabase.rpc("next_fatura_numero", { _empresa_id: empresaId });
     if (e1 || !numero) { setSaving(false); toast.error(e1?.message ?? "Erro ao gerar número"); return; }
 
     const fromOs = ordens.find((o) => o.id === osId);
@@ -290,23 +438,17 @@ function NovaFaturaDialog({
       total = Number(fromOs.total) || 0;
     }
 
-    const { data: novaFatura, error } = await supabase
-      .from("faturas")
-      .insert({
-        empresa_id: empresaId, numero,
-        os_id: fromOs?.id ?? null,
-        cliente_id, cliente_nome,
-        itens: itens as never, total,
-        vencimento: vencimento || null,
-      })
-      .select("id")
-      .single();
+    const { error } = await supabase.from("faturas").insert({
+      empresa_id: empresaId, numero,
+      os_id: fromOs?.id ?? null,
+      cliente_id, cliente_nome,
+      itens: itens as never, total,
+      vencimento: vencimento || null,
+    });
 
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Fatura criada!");
-    onCreated(novaFatura.id);
-    onOpenChange(false);
+    onCreated();
     setOsId("_none");
     setVencimento("");
   }
@@ -333,7 +475,7 @@ function NovaFaturaDialog({
                 )}
                 {ordens.map((o) => (
                   <SelectItem key={o.id} value={o.id}>
-                    #{o.numero} — {o.cliente?.nome ?? "sem cliente"} · {brl(Number(o.total))}
+                    #{o.numero} — {o.cliente?.nome ?? "sem cliente"} · {brlFmt(Number(o.total))}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -344,20 +486,16 @@ function NovaFaturaDialog({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="venc">Vencimento</Label>
-            <Input
-              id="venc" type="date"
-              value={vencimento}
-              onChange={(e) => setVencimento(e.target.value)}
-            />
+            <Input id="venc" type="date" value={vencimento} onChange={(e) => setVencimento(e.target.value)} />
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleCreate} disabled={saving || osId === "_none"}>
+        <div className="flex gap-2 pt-2">
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="flex-1">Cancelar</Button>
+          <Button onClick={handleCreate} disabled={saving || osId === "_none"} className="flex-1">
             {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
             Criar fatura
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

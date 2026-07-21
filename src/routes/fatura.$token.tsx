@@ -74,7 +74,7 @@ function PublicFaturaPage() {
   const [signing, setSigning] = useState(false);
 
   useEffect(() => {
-    if (!canvasRef.current || data?.status === "aceita" || data?.status === "pago") return;
+    if (!canvasRef.current || (data?.status as any) === "aceita" || data?.status === "pago") return;
     const c = canvasRef.current;
     const resize = () => {
       const ratio = window.devicePixelRatio || 1;
@@ -172,8 +172,8 @@ function PublicFaturaPage() {
                   (data.cliente as Tables<"clientes"> | null)?.nome ??
                   "Cliente"}
               </span>
-              <Badge variant={data.status === "aceita" || data.status === "pago" ? "default" : "outline"} className="capitalize">
-                {data.status === "aceita" ? "Aceita ✓" : data.status}
+              <Badge variant={(data.status as any) === "aceita" || data.status === "pago" ? "default" : "outline"} className="capitalize">
+                {(data.status as any) === "aceita" ? "Aceita ✓" : data.status}
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -223,7 +223,7 @@ function PublicFaturaPage() {
           </Card>
         )}
 
-        {(data.status === "aceita" || data.status === "pago") && data.assinatura_url ? (
+        {((data.status as any) === "aceita" || data.status === "pago") && data.assinatura_url ? (
           <Card>
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">

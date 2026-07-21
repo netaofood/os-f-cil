@@ -46,9 +46,9 @@ export const signFaturaByToken = createServerFn({ method: "POST" })
       .from("faturas")
       .update({
         assinatura_url: pub.publicUrl,
-        status: "aceita",
-        aceita_em: new Date().toISOString(),
-        aceita_assinatura_url: pub.publicUrl,
+        status: "aceita" as any,
+        aceita_em: new Date().toISOString() as any,
+        aceita_assinatura_url: pub.publicUrl as any,
       })
       .eq("id", fatura.id);
     if (e2) throw new Error(e2.message);
