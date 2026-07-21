@@ -164,14 +164,13 @@ function FaturasPage() {
                 </span>
               </div>
               <div className="flex gap-1 shrink-0">
-                <Link
-                  to="/faturas/$id"
-                  params={{ id: f.id }}
+                <a
+                  href={`/faturas/${f.id}`}
                   title="Abrir fatura"
                   className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >
                   <ExternalLink className="h-4 w-4" />
-                </Link>
+                </a>
                 <button
                   title="Enviar pelo WhatsApp"
                   onClick={() => enviarWhatsApp(f)}
