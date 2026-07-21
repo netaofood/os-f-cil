@@ -3,6 +3,7 @@ import { ShieldCheck, LogOut, Sun, Moon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { ManualUsuario } from "@/components/manual-usuario";
 
 export function AdminShell({ title, children }: { title: string; children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -70,6 +71,7 @@ export function AdminShell({ title, children }: { title: string; children: React
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground hidden sm:block">{nome}</span>
+          <ManualUsuario />
           <Button size="icon" variant="ghost" onClick={toggleTheme} className="h-8 w-8">
             {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>

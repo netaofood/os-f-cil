@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCurrentEmpresa, useCurrentUsuario } from "@/hooks/use-current-user";
+import { ManualUsuario } from "@/components/manual-usuario";
 
 interface Props {
   onToggleTheme: () => void;
@@ -36,6 +37,7 @@ export function AppHeader({ onToggleTheme, isDark }: Props) {
         </div>
       </div>
       <div className="flex items-center gap-2">
+        <ManualUsuario />
         <Button size="icon" variant="ghost" onClick={onToggleTheme} className="h-8 w-8">
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
