@@ -13,7 +13,6 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import type { Tables } from "@/integrations/supabase/types";
-import { buildFaturaPdf } from "@/lib/fatura-pdf";
 
 export const Route = createFileRoute("/_authenticated/faturas/$id")({
   component: FaturaDetailPage,
@@ -105,6 +104,7 @@ function FaturaDetailPage() {
   }
 
   async function downloadPdf() {
+    const { buildFaturaPdf } = await import("@/lib/fatura-pdf");
     const doc = buildFaturaPdf({
       empresa: data.empresa,
       fatura: data,
