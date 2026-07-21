@@ -169,6 +169,7 @@ function FaturasPage() {
                   to="/faturas/$id"
                   params={{ id: f.id }}
                   title="Abrir fatura"
+                  onClick={() => alert(`Abrindo fatura: /faturas/${f.id}`)}
                   className="h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 >
                   <ExternalLink className="h-4 w-4" />
