@@ -92,20 +92,21 @@ function FaturasPage() {
     setToDelete(null);
   }
 
-  async function updateStatus(fatura: Fatura, status: string) {
+  async function updateStatus(fatura: Fatura, status: string, dataPagamento?: string) {
     setUpdating(true);
     const { error } = await supabase
       .from("faturas")
       .update({
         status: status as any,
-        pago_em: status === "pago" ? new Date().toISOString() : null,
+        pago_em: status === "pago"
+          ? (dataPagamento ? new Date(dataPagamento).toISOString() : new Date().toISOString())
+          : null,
       })
       .eq("id", fatura.id);
     setUpdating(false);
     if (error) { toast.error(error.message); return; }
     toast.success("Status atualizado!");
     qc.invalidateQueries({ queryKey: ["faturas"] });
-    // Atualiza o modal com os novos dados
     setGestaoFatura(prev => prev ? { ...prev, status: status as any } : null);
   }
 
@@ -257,93 +258,15 @@ function FaturasPage() {
             <DialogTitle>Fatura {gestaoFatura?.numero}</DialogTitle>
           </DialogHeader>
           {gestaoFatura && (
-            <div className="space-y-4 py-2">
-              {/* Resumo */}
-              <div className="rounded-lg bg-muted p-4 space-y-1.5 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Cliente</span>
-                  <span className="font-medium">{gestaoFatura.cliente?.nome ?? gestaoFatura.cliente_nome ?? "—"}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total</span>
-                  <span className="font-bold font-mono">{brl(Number(gestaoFatura.total))}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Status</span>
-                  <span
-                    className="text-xs font-medium px-2 py-0.5 rounded-full text-white"
-                    style={{ backgroundColor: statusColor[gestaoFatura.status] ?? "#6b7280" }}
-                  >
-                    {statusLabel[gestaoFatura.status] ?? gestaoFatura.status}
-                  </span>
-                </div>
-                {gestaoFatura.vencimento && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Vencimento</span>
-                    <span>{new Date(gestaoFatura.vencimento).toLocaleDateString("pt-BR")}</span>
-                  </div>
-                )}
-                {(gestaoFatura as any).aceita_em && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Aceita em</span>
-                    <span className="text-green-600 text-xs">{new Date((gestaoFatura as any).aceita_em).toLocaleDateString("pt-BR")}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Ações de status */}
-              {gestaoFatura.status !== "pago" && gestaoFatura.status !== "cancelado" && (
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Dar baixa</p>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => updateStatus(gestaoFatura, "pago")}
-                      disabled={updating}
-                      className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border border-green-500/40 text-green-600 hover:bg-green-500/10 disabled:opacity-50 transition-colors"
-                    >
-                      <CheckCircle2 className="h-5 w-5" />
-                      <span className="text-xs font-medium">Marcar pago</span>
-                    </button>
-                    <button
-                      onClick={() => updateStatus(gestaoFatura, "cancelado")}
-                      disabled={updating}
-                      className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border border-destructive/40 text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
-                    >
-                      <XCircle className="h-5 w-5" />
-                      <span className="text-xs font-medium">Cancelar</span>
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Enviar */}
-              <div className="space-y-2 pt-1 border-t border-border">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Enviar fatura</p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => enviarWhatsApp(gestaoFatura)}
-                    className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border border-green-500/40 text-green-600 hover:bg-green-500/10 transition-colors"
-                  >
-                    <MessageCircle className="h-5 w-5" />
-                    <span className="text-xs font-medium">WhatsApp</span>
-                  </button>
-                  <button
-                    onClick={() => copiarLink(gestaoFatura)}
-                    className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border border-border hover:bg-muted transition-colors"
-                  >
-                    {copied === gestaoFatura.id ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
-                    <span className="text-xs font-medium">{copied === gestaoFatura.id ? "Copiado!" : "Copiar"}</span>
-                  </button>
-                </div>
-              </div>
-
-              <button
-                onClick={() => setGestaoFatura(null)}
-                className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Fechar
-              </button>
-            </div>
+            <GestaoFaturaContent
+              fatura={gestaoFatura}
+              updating={updating}
+              copied={copied}
+              onUpdateStatus={updateStatus}
+              onEnviarWhatsApp={enviarWhatsApp}
+              onCopiarLink={copiarLink}
+              onClose={() => setGestaoFatura(null)}
+            />
           )}
         </DialogContent>
       </Dialog>
@@ -372,6 +295,141 @@ function FaturasPage() {
         </AlertDialogContent>
       </AlertDialog>
     </AppShell>
+  );
+}
+
+function GestaoFaturaContent({
+  fatura, updating, copied, onUpdateStatus, onEnviarWhatsApp, onCopiarLink, onClose,
+}: {
+  fatura: Fatura;
+  updating: boolean;
+  copied: string | null;
+  onUpdateStatus: (f: Fatura, status: string, dataPagamento?: string) => void;
+  onEnviarWhatsApp: (f: Fatura) => void;
+  onCopiarLink: (f: Fatura) => void;
+  onClose: () => void;
+}) {
+  const today = new Date().toISOString().split("T")[0];
+  const [dataPagamento, setDataPagamento] = useState(today);
+
+  const brl = (n: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(n || 0);
+
+  const statusColor: Record<string, string> = {
+    pendente: "#f59e0b", aceita: "#3b82f6", pago: "#10b981",
+    vencido: "#ef4444", cancelado: "#6b7280",
+  };
+  const statusLabel: Record<string, string> = {
+    pendente: "Pendente", aceita: "Aceita", pago: "Pago",
+    vencido: "Vencido", cancelado: "Cancelado",
+  };
+
+  return (
+    <div className="space-y-4 py-2">
+      {/* Resumo */}
+      <div className="rounded-lg bg-muted p-4 space-y-1.5 text-sm">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Cliente</span>
+          <span className="font-medium">{fatura.cliente?.nome ?? fatura.cliente_nome ?? "—"}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Total</span>
+          <span className="font-bold font-mono">{brl(Number(fatura.total))}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="text-muted-foreground">Status</span>
+          <span
+            className="text-xs font-medium px-2 py-0.5 rounded-full text-white"
+            style={{ backgroundColor: statusColor[fatura.status] ?? "#6b7280" }}
+          >
+            {statusLabel[fatura.status] ?? fatura.status}
+          </span>
+        </div>
+        {fatura.vencimento && (
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Vencimento</span>
+            <span>{new Date(fatura.vencimento).toLocaleDateString("pt-BR")}</span>
+          </div>
+        )}
+        {(fatura as any).aceita_em && (
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Aceita em</span>
+            <span className="text-blue-600 text-xs">
+              {new Date((fatura as any).aceita_em).toLocaleDateString("pt-BR")}
+            </span>
+          </div>
+        )}
+        {fatura.pago_em && (
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Pago em</span>
+            <span className="text-green-600 text-xs">
+              {new Date(fatura.pago_em).toLocaleDateString("pt-BR")}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Dar baixa */}
+      {fatura.status !== "pago" && fatura.status !== "cancelado" && (
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Dar baixa</p>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Data do pagamento</Label>
+            <Input
+              type="date"
+              value={dataPagamento}
+              onChange={(e) => setDataPagamento(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={() => onUpdateStatus(fatura, "pago", dataPagamento)}
+              disabled={updating}
+              className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border border-green-500/40 text-green-600 hover:bg-green-500/10 disabled:opacity-50 transition-colors"
+            >
+              <CheckCircle2 className="h-5 w-5" />
+              <span className="text-xs font-medium">Marcar pago</span>
+            </button>
+            <button
+              onClick={() => onUpdateStatus(fatura, "cancelado")}
+              disabled={updating}
+              className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border border-destructive/40 text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
+            >
+              <XCircle className="h-5 w-5" />
+              <span className="text-xs font-medium">Cancelar</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Enviar */}
+      <div className="space-y-2 pt-1 border-t border-border">
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Enviar fatura</p>
+        <div className="flex gap-3">
+          <button
+            onClick={() => onEnviarWhatsApp(fatura)}
+            className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border border-green-500/40 text-green-600 hover:bg-green-500/10 transition-colors"
+          >
+            <MessageCircle className="h-5 w-5" />
+            <span className="text-xs font-medium">WhatsApp</span>
+          </button>
+          <button
+            onClick={() => onCopiarLink(fatura)}
+            className="flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border border-border hover:bg-muted transition-colors"
+          >
+            {copied === fatura.id ? <Check className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
+            <span className="text-xs font-medium">{copied === fatura.id ? "Copiado!" : "Copiar"}</span>
+          </button>
+        </div>
+      </div>
+
+      <button
+        onClick={onClose}
+        className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        Fechar
+      </button>
+    </div>
   );
 }
 
