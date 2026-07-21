@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 
 
 export const Route = createFileRoute("/_authenticated/setup")({
+  ssr: false,
   component: SetupPage,
 });
 

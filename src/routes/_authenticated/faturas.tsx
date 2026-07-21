@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/faturas")({
+  ssr: false,
   component: FaturasPage,
 });
 

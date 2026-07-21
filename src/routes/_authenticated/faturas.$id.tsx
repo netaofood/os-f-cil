@@ -15,6 +15,7 @@ import {
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/faturas/$id")({
+  ssr: false,
   component: FaturaDetailPage,
 });
 

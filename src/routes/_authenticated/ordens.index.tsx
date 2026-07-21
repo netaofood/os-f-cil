@@ -44,6 +44,7 @@ import { STATUS_OS, getStatusCor } from "@/lib/status-os";
 import { ClienteBusca } from "@/components/cliente-busca";
 
 export const Route = createFileRoute("/_authenticated/ordens/")({
+  ssr: false,
   component: OrdensPage,
 });
 

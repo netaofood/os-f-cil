@@ -31,6 +31,7 @@ import {
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/clientes")({
+  ssr: false,
   component: ClientesPage,
 });
 

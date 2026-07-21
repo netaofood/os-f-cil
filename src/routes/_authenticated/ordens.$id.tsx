@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/ordens/$id")({
+  ssr: false,
   component: OrdemDetailPage,
 });
 

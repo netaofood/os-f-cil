@@ -13,6 +13,7 @@ import { ptBR } from "date-fns/locale";
 import { STATUS_OS, getStatusCor } from "@/lib/status-os";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
+  ssr: false,
   component: DashboardPage,
 });
 

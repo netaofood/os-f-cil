@@ -20,6 +20,7 @@ import { criarColaborador } from "@/lib/admin.functions";
 import type { Tables } from "@/integrations/supabase/types";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
+  ssr: false,
   component: ConfigPage,
 });
 
